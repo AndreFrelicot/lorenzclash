@@ -37,7 +37,15 @@ pnpm install
 pnpm dev
 ```
 
-Vite runs on port `5173` and exposes the dev server on the local network. For phone testing, serve it through HTTPS so WebGPU and camera permissions work correctly.
+Vite runs on port `5173` and exposes the dev server on the local network.
+
+For phone testing, run the local HTTPS proxy in a second terminal:
+
+```bash
+pnpm proxy
+```
+
+Then open `https://localhost:8443` on desktop or `https://192.168.1.122:8443` on a phone connected to the same Wi-Fi. See [docs/local-https.md](./docs/local-https.md) for certificate setup.
 
 ## Build
 

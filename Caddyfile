@@ -1,0 +1,23 @@
+# Local HTTPS reverse proxy for the Vite dev server.
+#
+# WebGPU and camera access require a secure context on real devices. `localhost`
+# is secure over plain HTTP, but a phone reaching this Mac by LAN IP is not.
+# Caddy terminates local TLS here and proxies to Vite.
+#
+# Port 8443 is used instead of 443 so Caddy does not need root privileges.
+# Update the LAN IP below if this Mac's address changes:
+#   ipconfig getifaddr en0
+{
+	# Use Caddy's internal CA for local development certificates.
+	local_certs
+}
+
+https://localhost:8443 https://127.0.0.1:8443 https://192.168.1.122:8443 {
+	# Silence per-request access logs. Without this, browser HMR retries can flood
+	# the terminal with 502 logs when Vite is not running.
+	log {
+		output discard
+	}
+
+	reverse_proxy 127.0.0.1:5173
+}
