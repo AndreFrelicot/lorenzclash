@@ -1,0 +1,2331 @@
+:root {
+  color-scheme: dark;
+  --bg: #07080c;
+  --fg: #e8eaf0;
+  --muted: #9aa0b0;
+  --accent: #6cc6ff;
+  --active-ring: #aef200; /* acid green — marks active/checked controls (bar + export menu) */
+  --logo-red: rgb(169, 0, 0); /* the logo's red — used for the help-window frame */
+
+  /* Type system — modern-demoscene, bold. Space Grotesk drives UI + display
+     (differentiated by weight + tracking, not a second family); Space Mono is the
+     technical readout face (dev tuning, durations, counters). Self-hosted via
+     fontsource (imported in main.ts) — system fonts are the offline fallback. */
+  --font-ui:
+    'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-display: var(--font-ui);
+  --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  /* Shared display tracking — wide letterspacing reads as "demoscene title". */
+  --track-display: 0.14em;
+
+  /* Discreet UI language: white text/border on a transparent surface. --ui-scrim
+     is a legibility fallback (raise it toward rgba(7,8,12,.4) if white text gets
+     lost over bright art). */
+  --ui-fg: #fff;
+  --ui-border: rgba(255, 255, 255, 0.5);
+  --ui-scrim: rgba(7, 8, 12, 0);
+}
+
+* {
+  box-sizing: border-box;
+  /* Kill the Android/iOS grey-blue rectangle that flashes when tapping any control. */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Form controls don't inherit font-family — without this, every <button>/<input>
+   (export menu, mode chips, etc.) silently falls back to the browser default font
+   instead of the app type system. Per-control rules still set size/weight/case. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Interactive controls: no long-press callout / text selection, and no lingering
+   focus outline from a pointer tap — keyboard focus still shows via :focus-visible. */
+button,
+input,
+.xypad,
+.slowmo,
+.marginfader {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+button:focus,
+input:focus {
+  outline: none;
+}
+button:focus-visible {
+  outline: 2px solid var(--ui-fg);
+  outline-offset: 2px;
+}
+
+/* Inline SVG icons inherit the UI foreground colour. */
+.ui-icon {
+  display: block;
+  color: var(--ui-fg);
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-ui);
+  overflow: hidden;
+  overscroll-behavior: none;
+  /* It's an immersive scene, not a document — a long-press must never start a
+     text selection or pop the iOS callout. Inherited by everything. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* The artwork fills the screen; UI floats on top.
+   NOTE: no `position: fixed` here — a fixed GPU canvas gets its own compositing
+   layer that iOS Safari fails to update (black canvas). Normal-flow block at
+   full viewport size composites reliably on WebKit and desktop alike. */
+#gpu-canvas {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  touch-action: none;
+}
+
+/* Dev "Black bg (UI only)" toggle (Tune ▸ Debug): hide the live artwork behind solid
+   black so the UI can be inspected on its own. The canvas keeps rendering off-screen. */
+body.is-debug-blackout {
+  background: #000;
+}
+body.is-debug-blackout #gpu-canvas {
+  visibility: hidden;
+}
+
+#ui-root {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  --ctrl-bottom: max(2.6rem, calc(env(safe-area-inset-bottom, 0px) + 1.8rem));
+}
+
+/* Hidden <video> that decodes camera frames for WebGPU. Not display:none —
+   that would stop decoding on some browsers (notably iOS). */
+.hidden-video {
+  position: fixed;
+  top: -10000px;
+  left: -10000px;
+  width: 320px;
+  height: 180px;
+  object-fit: fill;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Discrete control bar — floats over the artwork without dominating it. Now a row of
+   FOUR diagonal zones separated by oblique bars; buttons step up to the right within a
+   zone and the first (lowest) of each is the largest/most-used. JS (MinimalControls.fit)
+   scales the whole cluster uniformly via --ctrl-scale so the SAME structure fits any
+   width — only the scale changes between desktop and mobile. */
+.controls {
+  position: absolute;
+  left: 50%;
+  bottom: var(--ctrl-bottom);
+  transform: translateX(-50%) scale(var(--ctrl-scale, 1));
+  transform-origin: bottom center;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  gap: calc(var(--ctrl-unit) * 0.04);
+  pointer-events: auto;
+  direction: ltr;
+
+  /* Button-size scale (base = smallest). Tweak these to retune the hierarchy. */
+  --ctrl-unit: clamp(2.2rem, 3.4vw, 2.9rem);
+  --ctrl-sm: var(--ctrl-unit);
+  --ctrl-md: calc(var(--ctrl-unit) * 1.12);
+  --ctrl-lg: calc(var(--ctrl-unit) * 1.28);
+  --bar-angle: 20deg; /* oblique lean — shared by separators, A/B badges AND the button line */
+
+  /* Oblique geometry: buttons are placed by CUMULATIVE ARC-LENGTH along a line at
+     --bar-angle, so the EDGE gap between neighbours is CONSTANT even though their sizes
+     differ (centre distance = gap + r_i + r_{i+1}). --s2..--s4 = arc-length of each button's
+     centre from the hero (child1 at 0). Sizes per index: lg, md, sm, sm. */
+  --ctrl-gap: calc(var(--ctrl-unit) * 0.3); /* the uniform edge gap between buttons */
+  --sin-a: sin(var(--bar-angle));
+  --cos-a: cos(var(--bar-angle));
+  --s2: calc(var(--ctrl-gap) + var(--ctrl-lg) / 2 + var(--ctrl-md) / 2);
+  --s3: calc(var(--s2) + var(--ctrl-gap) + var(--ctrl-md) / 2 + var(--ctrl-sm) / 2);
+  --s4: calc(var(--s3) + var(--ctrl-gap) + var(--ctrl-sm));
+}
+
+/* A zone sizes its (absolutely-positioned) box from the top button's arc-length --s-last. */
+.ctrl-zone {
+  position: relative;
+  flex: none;
+  --s-last: var(--s3); /* 3-button zones (Audio / Source / Vue) */
+  width: calc(var(--ctrl-lg) / 2 + var(--s-last) * var(--sin-a) + var(--ctrl-sm) / 2);
+  height: calc(var(--ctrl-lg) / 2 + var(--s-last) * var(--cos-a) + var(--ctrl-sm) / 2);
+}
+.ctrl-zone.is-capture {
+  --s-last: var(--s4); /* 4 buttons: Snapshot · Export · Frame margin · Help */
+}
+
+/* Each button centred on its arc-length point along the line (translate centres the box). */
+.ctrl-zone > .control-btn {
+  position: absolute;
+  left: calc(var(--ctrl-lg) / 2 + var(--s, 0px) * var(--sin-a));
+  bottom: calc(var(--ctrl-lg) / 2 + var(--s, 0px) * var(--cos-a));
+  transform: translate(-50%, 50%);
+}
+
+/* Size + arc-length per position: first lowest & largest, then climbing & smaller. */
+.ctrl-zone > .control-btn:nth-child(1) {
+  --s: 0px;
+  --bsize: var(--ctrl-lg);
+}
+.ctrl-zone > .control-btn:nth-child(2) {
+  --s: var(--s2);
+  --bsize: var(--ctrl-md);
+}
+.ctrl-zone > .control-btn:nth-child(3) {
+  --s: var(--s3);
+  --bsize: var(--ctrl-sm);
+}
+.ctrl-zone > .control-btn:nth-child(4) {
+  --s: var(--s4);
+  --bsize: var(--ctrl-sm);
+}
+
+/* Oblique separator bar between zones — leans with the diagonal, fades at both ends. */
+.ctrl-sep {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  width: 0.18rem;
+  height: calc(var(--s3) * var(--cos-a) + var(--ctrl-sm));
+  margin: 0 calc(var(--ctrl-unit) * 0.02);
+  border-radius: 999px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--ui-fg) 16%,
+    var(--ui-fg) 84%,
+    transparent
+  );
+  opacity: 0.5;
+  transform: rotate(var(--bar-angle));
+  /* Pivot about the CENTRE, not the bottom: bottom-pivot swings the whole bar to the
+     right (≈ height·sin20°/2), which pushes the bars off their column and makes the
+     buttons look left-shifted. Centre-pivot keeps each bar centred on its slot. */
+  transform-origin: center;
+}
+
+.control-btn {
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--bsize, var(--ctrl-unit, 2.4rem));
+  height: var(--bsize, var(--ctrl-unit, 2.4rem));
+  /* Every button is a full-white circle (was a faint 50% border at 0.6 opacity) so all are
+     equally visible; the ACTIVE state is shown by an encircling ring (.is-on::after). */
+  border: 1px solid var(--ui-fg);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  padding: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Icon scales with the button (fixed % of the box) instead of a fixed px size. */
+.control-btn .ui-icon {
+  width: 52%;
+  height: 52%;
+}
+
+/* Split is dimmed + inert when the camera is off (kept in place to hold the diagonal). */
+.control-btn.is-unavailable {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Snapshot recording feedback: a red ring sweeps around the button as it fills over
+   the 5 s clip (--rec drives the conic arc; a radial mask keeps only the outer ring). */
+.control-btn.is-recording {
+  opacity: 1;
+  border-color: #ff3b30;
+}
+.control-btn.is-recording::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  background: conic-gradient(
+    #ff3b30 calc(var(--rec, 0) * 360deg),
+    rgba(255, 59, 48, 0.18) 0
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  pointer-events: none;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Active (toggled-on) buttons get an encircling ring — same idea as the Auto halo, but a
+   steady accent ring (Auto overrides ::after below with its rotating multicolour version). */
+.control-btn.is-on::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 999px;
+  border: 1.5px solid var(--active-ring);
+  pointer-events: none;
+}
+
+/* Auto-director active: a slowly spinning multicolour ring around the button whose
+   brightness breathes with the live audio level (--energy, set per frame by App). The
+   radial mask keeps only the outer ring (mirrors the Snapshot recording ring). */
+.control-btn.is-auto.is-on::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: none; /* override the generic accent ring; Auto uses the masked rainbow below */
+  border-radius: 999px;
+  background: conic-gradient(
+    from 0deg,
+    #ff3d81,
+    #ffd23d,
+    #3dffa6,
+    #3da6ff,
+    #b03dff,
+    #ff3d81
+  );
+  opacity: calc(0.4 + 0.6 * var(--energy, 0.25));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: auto-halo-spin 3.2s linear infinite;
+  pointer-events: none;
+}
+@keyframes auto-halo-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+/* Pivot wrapper fills the button → its centre IS the button centre; rotating it by the bar
+   angle pivots the badge on the BUTTON centre. The badge sits on the LOWER edge so it swings
+   down the oblique (the empty side), clear of the buttons up the diagonal. */
+.ctrl-badge-pivot {
+  position: absolute;
+  inset: 0;
+  transform: rotate(var(--bar-angle));
+  transform-origin: center;
+  pointer-events: none;
+}
+
+/* A/B / Cube / Sphere chip — pops in (scale) when active, scales away otherwise. The oblique
+   tilt comes from the pivot wrapper; sitting it BELOW the button keeps it off the neighbours. */
+.ctrl-badge {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translate(-50%, 120%) scale(0.3);
+  padding: 0.08em 0.4em;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--bg);
+  font: 700 0.62rem/1 var(--font-display);
+  letter-spacing: 0.05em;
+  unicode-bidi: plaintext;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ctrl-badge.show {
+  opacity: 1;
+  transform: translate(-50%, 120%) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .control-btn.is-auto.is-on::after {
+    animation: none;
+  }
+  .ctrl-badge {
+    transition: none;
+  }
+}
+
+/* UiShell visibility: the control bar is hidden until revealed (tap/move), then
+   auto-hides on idle. ui/UiShell.ts toggles `.ui-revealed` on the UI root. Reveal is
+   opacity only — the bar uses transform for positioning, so we mustn't clobber it. */
+.controls {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.ui-revealed .controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Action caption: names the control just used, just above the bar. Bold white, fades. */
+.action-label {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--ctrl-bottom) + var(--bar-h, 3rem) + 0.6rem);
+  transform: translateX(-50%);
+  color: var(--ui-fg);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  unicode-bidi: plaintext;
+  pointer-events: none;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.action-label.show {
+  opacity: 1;
+}
+
+/* Summon popovers: the slow-mo + margin faders, or the speed pad, popped above the
+   bar by a bar button (ui/Summon.ts). Hidden until `.is-open`, fade after idle. */
+.summon-pop {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--ctrl-bottom) + var(--bar-h, 3rem) + 1.8rem);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1.6rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.summon-pop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Inside a popover the faders/pad flow (centred above the bar) instead of anchoring
+   to the screen edges, and the faders run a bit shorter. */
+.summon-pop .slowmo,
+.summon-pop .marginfader,
+.summon-pop .xypad {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  transform: none;
+  /* Follow the popover's interactivity: their own rules set pointer-events:auto,
+     which would otherwise keep them clickable while the popover is hidden. */
+  pointer-events: inherit;
+}
+.summon-pop .slowmo-track,
+.summon-pop .marginfader-track {
+  height: min(34vh, 11rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls,
+  .action-label,
+  .summon-pop {
+    transition: none;
+  }
+}
+
+/* Slow-mo fader — vertical, right edge. Pull the knob down to slow the music +
+   animation (tape-stop); release springs it back. Same glass look as the controls. */
+.slowmo {
+  position: absolute;
+  right: max(0.8rem, env(safe-area-inset-right));
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.slowmo-track {
+  position: relative;
+  width: 0.5rem;
+  height: min(42vh, 16rem);
+  border-radius: 999px;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  backdrop-filter: blur(6px);
+  touch-action: none;
+}
+
+.slowmo-knob {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--ui-fg);
+  background: rgba(7, 8, 12, 0.55);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0.4rem rgba(255, 255, 255, 0.35);
+}
+
+/* Auto-frame margin fader — left edge, mirroring the slow-mo on the right.
+   Persistent: the knob stays where dropped (down = tighter frame). */
+.marginfader {
+  position: absolute;
+  left: max(0.8rem, env(safe-area-inset-left));
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.marginfader-track {
+  position: relative;
+  width: 0.5rem;
+  height: min(42vh, 16rem);
+  border-radius: 999px;
+  border: 1px solid var(--logo-red); /* match the help-window frame */
+  background: var(--ui-scrim);
+  backdrop-filter: blur(6px);
+  touch-action: none;
+}
+
+.marginfader-knob {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--ui-fg);
+  background: rgba(7, 8, 12, 0.55);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0.4rem rgba(255, 255, 255, 0.35);
+}
+
+/* XY pad — bottom-left, opposite the slow-mo fader. X = curve A speed,
+   Y (up = fast) = curve B speed. Persistent: the knob stays where dropped.
+   Same glass look as the controls. */
+.xypad {
+  position: absolute;
+  left: max(0.8rem, env(safe-area-inset-left));
+  bottom: max(4.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+  width: min(28vw, 9rem);
+  height: min(28vw, 9rem);
+  border-radius: 0.6rem;
+  border: 1px solid var(--logo-red); /* match the help-window frame */
+  background: var(--ui-scrim);
+  backdrop-filter: blur(6px);
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.xypad-knob {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--ui-fg);
+  background: rgba(7, 8, 12, 0.55);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0.4rem rgba(255, 255, 255, 0.35);
+}
+
+
+/* Dev tuning panel. Hidden until the legend's secret gesture-page code unlocks it,
+   or immediately available with the ?tune URL flag. */
+.tuning.is-hidden {
+  display: none;
+}
+
+.tuning {
+  position: absolute;
+  z-index: 32;
+  top: max(0.75rem, env(safe-area-inset-top));
+  left: max(0.75rem, env(safe-area-inset-left));
+  width: min(44rem, calc(100vw - 1.5rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
+  max-height: calc(100dvh - 1.5rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.55rem;
+  background: rgba(7, 8, 12, 0.78);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(14px);
+  pointer-events: auto;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.tuning.is-collapsed {
+  width: auto;
+}
+
+.tuning-row {
+  display: grid;
+  grid-template-columns: minmax(5.4rem, 7.2rem) minmax(9rem, 1fr) 3rem;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  min-height: 1.55rem;
+}
+
+/* Boolean rows: label + checkbox (no slider/value columns). */
+.tuning-row-check {
+  grid-template-columns: minmax(5.4rem, 7.2rem) 1fr;
+  cursor: pointer;
+}
+
+.tuning-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.tuning-check {
+  justify-self: start;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.tuning-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+}
+
+.tuning-label {
+  overflow: hidden;
+  color: rgba(239, 241, 247, 0.78);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tuning-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.1rem 0;
+  cursor: pointer;
+}
+
+.tuning-body {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(17rem, 1fr));
+  align-items: start;
+  gap: 0.55rem 0.8rem;
+  margin-top: 0.35rem;
+  padding-right: 0.15rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.tuning.is-collapsed .tuning-body {
+  display: none;
+}
+
+/* Collapsible category inside the panel. */
+.tuning-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+  padding-top: 0.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.tuning-group-toggle {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.1rem 0 0.15rem;
+  cursor: pointer;
+}
+
+.tuning-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+  min-width: 0;
+}
+
+.tuning-group.is-collapsed .tuning-group-body {
+  display: none;
+}
+
+/* Action button inside a group (e.g. "fire this effect now"). */
+.tuning-btn {
+  appearance: none;
+  border: 1px solid var(--accent);
+  border-radius: 0.28rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.32rem 0.55rem;
+  margin-top: 0.15rem;
+  cursor: pointer;
+  align-self: start;
+}
+
+.tuning-btn:hover {
+  background: var(--accent);
+  color: #07080c;
+}
+
+@media (max-width: 760px) {
+  .tuning {
+    top: max(0.5rem, env(safe-area-inset-top));
+    left: max(0.5rem, env(safe-area-inset-left));
+    width: min(28rem, calc(100vw - 1rem - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    max-height: min(78dvh, calc(100dvh - 1rem - env(safe-area-inset-top) - env(safe-area-inset-bottom)));
+    padding: 0.58rem;
+    font-size: 0.68rem;
+  }
+  .tuning.is-collapsed {
+    width: auto;
+  }
+  .tuning-body {
+    grid-template-columns: 1fr;
+  }
+  .tuning-row {
+    grid-template-columns: minmax(4.8rem, 6rem) minmax(7rem, 1fr) 2.7rem;
+  }
+  .tuning-row-check {
+    grid-template-columns: minmax(4.8rem, 6rem) 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .tuning-row {
+    grid-template-columns: minmax(4.4rem, 5.2rem) minmax(5.5rem, 1fr) 2.5rem;
+    gap: 0.4rem;
+  }
+  .tuning-row-check {
+    grid-template-columns: minmax(4.4rem, 5.2rem) 1fr;
+  }
+}
+
+/* Centered fullscreen overlay used by Start / Unsupported screens. */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  /* Height = the DYNAMIC visible viewport (not the inset-derived large viewport): the
+     overlay always fills exactly what's on screen, so content centres without dead space
+     on tall phones and is never clipped under the Safari toolbars on short ones. */
+  height: 100vh; /* fallback for browsers without dvh */
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem;
+  /* Tall content (preview + warning) on short phones can exceed the viewport — let it
+     scroll rather than clip the warning off the bottom. */
+  overflow-y: auto;
+  text-align: center;
+  background: radial-gradient(circle at 50% 35%, rgba(20, 24, 38, 0.6), rgba(7, 8, 12, 0.92));
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+/* The Start screen sits over the live boot starfield — soften the vignette and
+   drop the blur so the stars show through. Error/Unsupported keep the solid
+   .screen background above for guaranteed legibility (no starfield behind). */
+.screen.is-start {
+  background: radial-gradient(circle at 50% 35%, rgba(20, 24, 38, 0.25), rgba(7, 8, 12, 0.55));
+  backdrop-filter: none;
+  gap: 0.85rem; /* tight — fit everything on short phones (SE) without squashing */
+  padding: 1.4rem 1.25rem;
+}
+/* Safe-centre: centre the column when it fits, but pack to the top (logo never clipped)
+   and let it scroll when it doesn't. Auto margins on the end children do both — no JS,
+   and they override justify-content, so overflow packs to the start instead of clipping. */
+.screen.is-start > :first-child {
+  margin-top: auto;
+}
+.screen.is-start > :last-child {
+  margin-bottom: auto;
+}
+
+.screen h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 7vw, 3.1rem);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  /* The trailing letter's tracking pushes the optical centre right; nudge back. */
+  text-indent: var(--track-display);
+}
+
+.screen p {
+  margin: 0;
+  max-width: 28rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+/* Diagnostic line on the crash screen — small, dim, monospaced so the (long) readout stays
+   legible and wraps. Baked in so a screenshot of the crash is self-sufficient for debugging. */
+.screen .error-detail {
+  max-width: 34rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  opacity: 0.6;
+  overflow-wrap: anywhere;
+}
+
+.start-logo {
+  color: var(--ui-fg);
+  opacity: 0.9;
+  margin-bottom: 0.4rem;
+}
+
+/* Evocative intro — two epigraphs that alternate (StartScreen.ts). Rests white; a chaos
+   tint sweeps over it, then it fades to the other quote. */
+.start-intro {
+  position: relative;
+  margin: -0.5rem 0 0;
+  max-width: 26rem;
+  color: var(--fg);
+  font-style: italic;
+  font-size: clamp(0.95rem, 3.6vw, 1.1rem);
+  line-height: 1.5;
+  text-wrap: balance;
+  transition: opacity 0.5s ease; /* quote fade-swap */
+}
+.start-intro.is-swapping {
+  opacity: 0;
+}
+
+/* A red/black flowing copy of the text (same content via data-text), overlaid and clipped
+   to the glyphs. It fades in over the white quote, then out — the ENTER CHAOS texture. */
+.start-intro::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: linear-gradient(115deg, #6e0010, #d4142a 30%, #16060a 50%, #d4142a 70%, #6e0010);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  opacity: 0;
+}
+.start-intro.is-chaos::after {
+  animation: intro-chaos 2.8s ease-in-out;
+}
+@keyframes intro-chaos {
+  0% {
+    opacity: 0;
+    background-position: 0% 50%;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: 100% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-intro {
+    transition: none;
+  }
+  .start-intro::after {
+    display: none;
+  }
+}
+
+.start-button {
+  appearance: none;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-indent: 0.14em;
+  padding: 0.7rem 2.4rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.start-button:hover,
+.start-button:focus-visible {
+  background: var(--ui-fg);
+  color: var(--bg);
+  outline: none;
+}
+
+/* Start CTA — "ENTER CHAOS": thicker, alive. A red/black gradient flows endlessly across
+   it (background-position animation) with a red glow. Scoped to the start screen so the
+   error screen's plain .start-button "Reload" is untouched. */
+.start-button.start-cta {
+  border-width: 2px;
+  border-color: rgba(255, 90, 70, 0.7);
+  color: #fff;
+  padding: 0.85rem 2.6rem;
+  letter-spacing: 0.16em;
+  text-indent: 0.16em;
+  background-color: #16060a;
+  background-image: linear-gradient(115deg, #16060a, #6e0010 22%, #d4142a 44%, #4a0008 66%, #16060a);
+  background-size: 300% 300%;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 0 1.3rem rgba(209, 20, 37, 0.35);
+  animation: start-chaos 9s ease-in-out infinite;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.2s ease;
+}
+.start-button.start-cta:hover,
+.start-button.start-cta:focus-visible {
+  background-color: #16060a;
+  background-image: linear-gradient(115deg, #16060a, #6e0010 22%, #d4142a 44%, #4a0008 66%, #16060a);
+  background-size: 300% 300%;
+  color: #fff;
+  transform: scale(1.04);
+  box-shadow: 0 0 2.2rem rgba(209, 20, 37, 0.6);
+  outline: none;
+}
+/* 0% == 100% so the loop returns to its start (no jump); ease-in-out pans smoothly. */
+@keyframes start-chaos {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-button.start-cta {
+    animation: none;
+  }
+}
+
+/* Icon toggles (camera / music) + the help button, on one centred row. */
+.start-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.start-toggle {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  opacity: 0.55;
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+.start-toggle:hover,
+.start-toggle:focus-visible {
+  opacity: 0.8;
+  border-color: var(--logo-red);
+}
+.start-toggle.is-on {
+  opacity: 1;
+  border-color: var(--ui-fg);
+}
+.start-toggle.is-on:hover,
+.start-toggle.is-on:focus-visible {
+  border-color: var(--logo-red);
+}
+
+/* Live camera preview — square, so any 90° rotation still fills the frame. */
+.start-preview {
+  position: relative;
+  /* Keep it SQUARE: cap by width AND viewport height, and never let the column flex
+     shrink its height (which squashed it to landscape on short phones like the SE). */
+  flex: none;
+  /* svh (small viewport height) = the VISIBLE area with the browser toolbars shown, so the
+     preview shrinks to fit short phones instead of being clipped under the Safari chrome. */
+  width: min(60vw, 14rem, 34svh);
+  aspect-ratio: 1;
+  border-radius: 1rem;
+  border: 1px solid var(--ui-border);
+  background: rgba(7, 8, 12, 0.45);
+  overflow: hidden;
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s ease,
+    max-height 0.3s ease,
+    margin 0.3s ease;
+}
+/* Collapsed when the camera is off — height/opacity fold away and the negative
+   margin swallows the screen's flex gap so the layout closes up. */
+.start-preview.is-off {
+  max-height: 0;
+  /* Collapse the preview but keep breathing room between the toggles and the CTA when the
+     camera is off (a deeper negative margin glued them together). */
+  margin: -0.25rem 0;
+  opacity: 0;
+  transform: scale(0.9);
+  border-width: 0;
+  pointer-events: none;
+}
+
+.start-preview-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0; /* revealed once the GPU draws the first live frame */
+  transition: opacity 0.25s ease;
+}
+.start-preview.is-live .start-preview-canvas {
+  opacity: 1;
+}
+
+.start-preview-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-align: center;
+  cursor: pointer;
+}
+.start-preview.is-live .start-preview-empty {
+  display: none;
+}
+
+/* Rotate (top-right) + Aspect (top-left) feed buttons (only while a feed is live). */
+.start-rotate,
+.start-aspect {
+  position: absolute;
+  top: 0.5rem;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: rgba(7, 8, 12, 0.55);
+  color: var(--ui-fg);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+.start-rotate {
+  right: 0.5rem;
+}
+.start-aspect {
+  left: 0.5rem;
+}
+.start-preview.is-live .start-rotate,
+.start-preview.is-live .start-aspect {
+  display: inline-flex;
+}
+.start-rotate:hover,
+.start-aspect:hover {
+  border-color: var(--ui-fg);
+}
+
+/* Start button — alone on its line so it stays centred (Help moved to the toggles). */
+.start-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Notices marquee — plain white (no amber frame), single-line ticker that scrolls the
+   photosensitivity warning + a headphones tip past, edges faded. Same face as the title. */
+.start-warning {
+  width: min(26rem, 88vw);
+  margin: 0;
+  overflow: hidden;
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.start-warning-track {
+  display: flex;
+  flex: none;
+  width: max-content;
+  animation: warning-marquee 32s linear infinite;
+}
+.start-warning-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-right: 3.5rem; /* gap between consecutive notices */
+  white-space: nowrap;
+}
+.start-warning .ui-icon {
+  flex: none;
+  color: var(--fg);
+}
+.start-warning strong {
+  font-weight: 600;
+}
+@keyframes warning-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+/* Reduced motion: no scroll — show just the photosensitivity notice, wrapped + centred. */
+@media (prefers-reduced-motion: reduce) {
+  .start-warning {
+    overflow: visible;
+    -webkit-mask: none;
+    mask: none;
+    text-align: center;
+  }
+  .start-warning-track {
+    animation: none;
+    width: auto;
+    justify-content: center;
+  }
+  .start-warning-msg {
+    padding-right: 0;
+    white-space: normal;
+  }
+  .start-warning-msg:not(:first-child) {
+    display: none;
+  }
+}
+
+/* Trust block — always visible under the CTA (NOT in the rotating ticker), so privacy
+   and compatibility are available before starting. */
+.start-trust {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: min(26rem, 88vw);
+  margin: 0;
+}
+
+/* Privacy note. Same face as the title, slightly muted; icon + line wraps on narrow screens. */
+.start-privacy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  text-align: center;
+}
+.start-privacy .ui-icon {
+  flex: none;
+  color: var(--fg);
+}
+.start-privacy strong {
+  color: var(--fg);
+  font-weight: 600;
+}
+.start-system-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  padding: 0.1rem 0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  text-underline-offset: 0.22em;
+  opacity: 0.72;
+  cursor: pointer;
+}
+.start-system-link:hover,
+.start-system-link:focus-visible {
+  opacity: 1;
+  outline: none;
+}
+
+/* Genuinely short screens (iPhone SE 2022 & co.): scale the start screen down — smaller
+   logo, toggles, preview, CTA and type, tighter gaps — so it all fits the visible viewport
+   without scrolling. Centring is handled by the auto-margins above. Mid/large phones stay
+   at full size (their visible height is above this breakpoint). */
+@media (max-height: 660px) {
+  .screen.is-start {
+    gap: 0.45rem;
+    padding: 1rem 1rem calc(0.8rem + env(safe-area-inset-bottom));
+  }
+  .start-logo {
+    width: 46px;
+    height: auto; /* preserve the logo's ~300:263 aspect (don't force square) */
+    margin-bottom: 0.1rem;
+  }
+  .screen.is-start h1 {
+    font-size: clamp(1.45rem, 6.5vw, 2.2rem);
+  }
+  .start-intro {
+    font-size: clamp(0.82rem, 3.4vw, 0.98rem);
+    margin-top: -0.2rem;
+  }
+  .start-toggle {
+    padding: 0.4rem 0.85rem;
+    font-size: 0.78rem;
+    gap: 0.4rem;
+  }
+  .start-toggle .ui-icon {
+    width: 18px;
+    height: 18px;
+  }
+  .start-preview {
+    width: min(54vw, 12rem, 26svh);
+  }
+  .start-button.start-cta {
+    padding: 0.62rem 2rem;
+    font-size: 0.95rem;
+  }
+  .start-privacy {
+    font-size: 0.72rem;
+    gap: 0.4rem;
+  }
+  .start-trust {
+    gap: 0.2rem;
+  }
+  .start-system-link {
+    font-size: 0.66rem;
+  }
+  .start-warning {
+    font-size: 0.74rem;
+  }
+}
+.start-help {
+  /* Pinned to the top-right corner of the start screen (out of the toggles row). */
+  position: absolute;
+  top: max(0.9rem, env(safe-area-inset-top));
+  right: max(0.9rem, env(safe-area-inset-right));
+  z-index: 2;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  opacity: 0.7;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease;
+}
+.start-help:hover,
+.start-help:focus-visible {
+  opacity: 1;
+  border-color: var(--logo-red);
+}
+
+/* Language selector — persistent, small top-left affordance; the modal uses the same
+   red-framed visual language as the help window. */
+.lang-button {
+  position: absolute;
+  top: max(0.9rem, env(safe-area-inset-top));
+  left: max(0.9rem, env(safe-area-inset-left));
+  z-index: 4;
+  pointer-events: auto;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 3.3rem;
+  height: 2.5rem;
+  padding: 0 0.62rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(7, 8, 12, 0.34);
+  color: var(--ui-fg);
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  opacity: 0.82;
+  transition:
+    opacity 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+.lang-button:hover,
+.lang-button:focus-visible {
+  opacity: 1;
+  border-color: var(--logo-red);
+}
+.lang-button-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.lang-button-code {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.lang-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 13;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
+    max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
+  background: rgba(5, 6, 10, 0.72);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  touch-action: pan-y;
+  transition: opacity 0.3s ease;
+}
+.lang-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.lang-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 31rem);
+  max-height: calc(100dvh - 3rem - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  padding: 1.45rem;
+  border: 1px solid var(--logo-red);
+  border-radius: 1.1rem;
+  background: rgba(12, 14, 22, 0.95);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+  transform: translateY(1rem) scale(0.96);
+  overflow: hidden;
+  touch-action: pan-y;
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lang-overlay.is-open .lang-panel {
+  transform: none;
+}
+.lang-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  cursor: pointer;
+}
+.lang-close:hover {
+  border-color: var(--ui-fg);
+}
+.lang-title {
+  margin: 0 2.4rem 0.25rem 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.lang-subtitle {
+  margin: 0 2.4rem 1rem 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 0.15rem;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+.lang-option {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    background 0.18s ease,
+    transform 0.18s ease;
+}
+.lang-option:hover,
+.lang-option:focus-visible {
+  border-color: var(--ui-border);
+  background: rgba(255, 255, 255, 0.07);
+}
+.lang-option.is-selected {
+  border-color: var(--logo-red);
+  background: rgba(169, 0, 0, 0.24);
+  box-shadow: 0 0 1.1rem rgba(169, 0, 0, 0.18);
+}
+.lang-option-code {
+  flex: none;
+  min-width: 2rem;
+  padding: 0.22rem 0.35rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: var(--ui-fg);
+  font-family: var(--font-display);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  letter-spacing: 0.08em;
+}
+.lang-option-flag {
+  flex: none;
+  width: 2.6rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  text-align: center;
+}
+.lang-option-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+.lang-option-text strong {
+  overflow-wrap: anywhere;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.lang-option-text span {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+
+html:lang(ja) .start-toggle,
+html:lang(ko) .start-toggle,
+html:lang(zh-Hans) .start-toggle,
+html:lang(th) .start-toggle,
+html:lang(hi) .start-toggle,
+html:lang(ar) .start-toggle,
+html:lang(bn) .start-toggle,
+html:lang(ja) .start-button,
+html:lang(ko) .start-button,
+html:lang(zh-Hans) .start-button,
+html:lang(th) .start-button,
+html:lang(hi) .start-button,
+html:lang(ar) .start-button,
+html:lang(bn) .start-button {
+  letter-spacing: 0.04em;
+  text-indent: 0;
+  text-transform: none;
+}
+
+html[dir='rtl'] .lang-panel,
+html[dir='rtl'] .legend-panel,
+html[dir='rtl'] .export-panel {
+  text-align: right;
+}
+
+html[dir='rtl'] .lang-close,
+html[dir='rtl'] .legend-close,
+html[dir='rtl'] .export-close {
+  right: auto;
+  left: 0.9rem;
+}
+
+html[dir='rtl'] .lang-title,
+html[dir='rtl'] .lang-subtitle,
+html[dir='rtl'] .export-title {
+  margin-right: 0;
+  margin-left: 2.4rem;
+}
+
+html[dir='rtl'] .lang-option {
+  text-align: right;
+}
+
+@media (max-width: 520px) {
+  .lang-grid {
+    grid-template-columns: 1fr;
+  }
+  .lang-panel {
+    padding: 1.25rem;
+  }
+}
+
+/* Legend overlay: animated panel describing every in-animation control. */
+.legend-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(5, 6, 10, 0.6);
+  backdrop-filter: blur(8px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.legend-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* No scrollbar: the panel keeps its natural height and is scaled to fit the
+   viewport via --fit (set by StartScreen.ts), so every row shows at once. */
+.legend-panel {
+  position: relative;
+  width: min(92vw, 30rem);
+  padding: 1.5rem 1.4rem;
+  text-align: left;
+  border: 1px solid var(--logo-red); /* help-window frame in the logo's red */
+  border-radius: 1.1rem;
+  background: rgba(12, 14, 22, 0.92);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transform-origin: center center;
+  transform: translateY(1rem) scale(calc(var(--fit, 1) * 0.94));
+  transition:
+    transform 0.32s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.32s ease;
+}
+.legend-overlay.is-open .legend-panel {
+  opacity: 1;
+  transform: scale(var(--fit, 1));
+}
+
+.legend-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.legend-title-logo {
+  flex: none;
+  width: auto;
+  height: 1.5em;
+  color: var(--ui-fg);
+}
+
+.legend-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  cursor: pointer;
+}
+.legend-close:hover {
+  border-color: var(--ui-fg);
+}
+
+.legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.legend-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+.legend-overlay.is-open .legend-row {
+  animation: legend-row-in 0.4s ease both;
+  animation-delay: calc(0.12s + var(--i) * 0.04s);
+}
+
+.legend-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  color: var(--ui-fg);
+}
+
+.legend-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.legend-text strong {
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+.legend-text span {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+/* Pages: only the active one is shown; the panel re-fits on switch. */
+.legend-page {
+  display: none;
+}
+.legend-page.is-active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* The slow-mo gesture row, set off from the bar-button rows above it on page 1. */
+.legend-row-sep {
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Section subtitle inside a legend page (e.g. "Gesture controls") — demoscene caps, with
+   a separator line above (doubles as the section divider). */
+.legend-subtitle {
+  margin-top: 0.35rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Credits block (page 2). */
+.legend-credits {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.legend-credits span {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+/* Discreet build version, set apart below the date — small, dim, monospaced. */
+.legend-credits .legend-version {
+  margin-top: 0.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  opacity: 0.55;
+}
+.legend-link {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-decoration: none;
+  width: fit-content;
+}
+.legend-link:hover {
+  text-decoration: underline;
+}
+
+/* Privacy block (credits page): a "Privacy" subtitle (draws its own divider) + 2 muted lines. */
+.legend-privacy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.legend-privacy span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Pager nav: ← dots →. */
+.legend-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+.legend-arrow {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.legend-arrow:hover {
+  border-color: var(--ui-fg);
+}
+.legend-arrow.is-hidden {
+  visibility: hidden; /* keep the dots centred */
+}
+.legend-dots {
+  display: flex;
+  gap: 0.4rem;
+}
+.legend-dots span {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  transition: background 0.2s ease;
+}
+.legend-dots span.is-active {
+  background: var(--ui-fg);
+}
+
+@keyframes legend-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .start-preview,
+  .start-preview-canvas,
+  .legend-overlay,
+  .legend-panel {
+    transition: none;
+  }
+  .legend-overlay.is-open .legend-row {
+    animation: none;
+  }
+}
+
+/* Export menu — centred modal listing recent captures + clip generation controls. */
+.export-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  /* No backdrop-filter: a full-screen blur over the live-animating render is a heavy,
+     CONTINUOUS GPU op (re-blurred every frame) that exhausts the GPU process on a tight
+     device (iPad) → createCommandEncoder/beginRenderPass fail. A more opaque flat scrim
+     hides the background just as well at near-zero GPU cost. */
+  background: rgba(5, 6, 10, 0.88);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.export-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.export-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(92vw, 32rem);
+  max-height: 88dvh;
+  /* The panel itself never scrolls (header + controls + buttons stay put, the close button
+     never clips). Only the clips list scrolls — see .export-list. */
+  overflow: hidden;
+  padding: 1.5rem 1.4rem;
+  text-align: left;
+  /* No text selection / callout — dragging clips must not highlight labels on mobile. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  border: 1px solid var(--ui-border);
+  border-radius: 1.1rem;
+  background: rgba(12, 14, 22, 0.94);
+  box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
+  transform: translateY(1rem) scale(0.96);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.export-overlay.is-open .export-panel {
+  transform: none;
+}
+/* Every panel section keeps its size; only the clips list (below) may shrink + scroll. */
+.export-panel > * {
+  flex-shrink: 0;
+}
+
+.export-title {
+  margin: 0 0 1rem;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.export-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  padding: 0;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  cursor: pointer;
+}
+/* Hover only on real pointers — on touch a sticky :hover makes the FIRST tap apply the
+   hover state instead of clicking (the "tap twice" on iOS). */
+@media (hover: hover) {
+  .export-close:hover {
+    border-color: var(--ui-fg);
+  }
+}
+
+.export-empty {
+  margin: 0.5rem 0 1rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.export-list {
+  position: relative; /* anchor the absolute drop-indicator bar */
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+  /* The ONLY scroller: takes the leftover height in the (non-scrolling) panel and scrolls
+     internally when there are many clips. min-height:0 lets it shrink below its content. */
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.export-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 0.6rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+.export-row.is-excluded {
+  opacity: 0.45;
+}
+.export-row.is-dragging {
+  position: relative;
+  z-index: 5;
+  pointer-events: none; /* it follows the finger via transform; don't hit-test it */
+  border-color: var(--ui-fg);
+  box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.5);
+  opacity: 0.95;
+}
+
+/* Remove the iOS ~300 ms tap delay on the dialog's controls (e.g. Synced/Continuous).
+   The drag handle keeps touch-action:none, so it's excluded (it's a div, not a button). */
+.export-panel button,
+.export-row-media {
+  touch-action: manipulation;
+}
+
+/* Drop indicator: a glowing line at the gap where the card will land. */
+.export-drop-bar {
+  position: absolute;
+  left: 0.1rem;
+  right: 0.1rem;
+  height: 0;
+  margin-top: -1px;
+  border-top: 2px solid var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 0 6px var(--accent);
+  pointer-events: none;
+}
+
+.export-drag {
+  flex: none;
+  /* Only the handle disables native gestures, so dragging it reorders (instead of
+     scrolling) while a touch on the rest of the row still scrolls the list. */
+  touch-action: none;
+  padding: 0.2rem 0.5rem;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: grab;
+  user-select: none;
+}
+
+.export-row-media {
+  position: relative;
+  flex: none;
+  width: 96px;
+  border-radius: 0.4rem;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.5);
+  line-height: 0;
+  cursor: pointer;
+}
+.export-row-media canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.export-preview-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #000;
+}
+/* Building a preview clip (encode in progress) — spinner over the thumbnail. */
+.export-row-media.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: var(--accent);
+  animation: export-spin 0.8s linear infinite;
+}
+@keyframes export-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.export-thumb-dur {
+  position: absolute;
+  left: 0.25rem;
+  bottom: 0.25rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.4rem;
+  background: rgba(7, 8, 12, 0.75);
+  color: var(--ui-fg);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+
+.export-row-meta {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+/* Custom icon toggle (replaces standard checkboxes + the Keep button). On = bright and
+   enlarged; off = small + grey. The wrapper scales (smooth transition). No rotation. */
+.export-toggle {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: color 0.25s ease;
+}
+.export-toggle .toggle-ic {
+  position: relative; /* anchor the active ring (::after) */
+  display: inline-flex;
+  transform: scale(0.78);
+  transition: transform 0.25s ease;
+}
+/* Inherit the toggle's colour (grey when off) — the base .ui-icon forces --ui-fg. */
+.export-toggle .toggle-ic .ui-icon {
+  color: inherit;
+}
+.export-toggle.is-on {
+  color: var(--ui-fg);
+}
+.export-toggle.is-on .toggle-ic {
+  transform: scale(1.2);
+}
+/* Checked Include (✓) / Keep (★): an acid-green ring AROUND the icon — same idea as the
+   active ring on the in-scene buttons (the icon itself keeps its colour). */
+.export-toggle.is-on .toggle-ic::after {
+  content: '';
+  position: absolute;
+  /* Small, even margin around the glyph so the ring never touches it (the star tips / sound
+     waves reach near the box edge) — close like the in-scene ring, not a big halo. */
+  inset: -2px;
+  border-radius: 999px;
+  border: 1.5px solid var(--active-ring);
+  pointer-events: none;
+}
+
+.export-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.export-modes {
+  display: inline-flex;
+  gap: 0.35rem;
+}
+.export-mode {
+  appearance: none;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  opacity: 0.6;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s ease, border-color 0.2s ease;
+}
+@media (hover: hover) {
+  .export-mode:hover {
+    opacity: 0.85;
+  }
+}
+.export-mode.is-on {
+  opacity: 1;
+  border-color: var(--ui-fg);
+}
+
+
+.export-progress {
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  margin-bottom: 0.9rem;
+}
+.export-progress-bar {
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.export-generate {
+  appearance: none;
+  width: 100%;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.65rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.export-generate:focus-visible:not(:disabled) {
+  background: var(--ui-fg);
+  color: var(--bg);
+  outline: none;
+}
+@media (hover: hover) {
+  .export-generate:hover:not(:disabled) {
+    background: var(--ui-fg);
+    color: var(--bg);
+  }
+}
+.export-generate:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Per-clip trash (row meta, next to Include/Keep) — grey, reddening on hover. */
+.export-trash {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0.2rem;
+  color: var(--muted);
+  opacity: 0.7;
+  transition: color 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+.export-trash .ui-icon {
+  color: inherit;
+}
+@media (hover: hover) {
+  .export-trash:hover {
+    color: var(--logo-red);
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* Curation row: "Remove unused" bulk-delete, between the list and the export controls. */
+.export-curation {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 0.7rem;
+}
+.export-remove-unused {
+  appearance: none;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.export-remove-unused .ui-icon {
+  color: inherit;
+}
+@media (hover: hover) {
+  .export-remove-unused:hover {
+    color: var(--logo-red);
+    border-color: var(--logo-red);
+  }
+}
+
+/* Confirmation overlay for destructive actions — a small card over the (relative) panel. No
+   backdrop blur on purpose (the render is paused while the dialog is open, but blur was a GPU
+   cost we cut on iPad — keep a plain scrim). */
+.export-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+  background: rgba(7, 8, 12, 0.82);
+  border-radius: inherit;
+}
+.export-confirm-card {
+  max-width: 22rem;
+  width: 100%;
+  border: 1px solid var(--ui-border);
+  background: var(--bg);
+  border-radius: 0.8rem;
+  padding: 1.1rem 1.2rem;
+  text-align: center;
+}
+.export-confirm-msg {
+  margin: 0 0 1rem;
+  color: var(--ui-fg);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+.export-confirm-btns {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+.export-confirm-cancel,
+.export-confirm-ok {
+  appearance: none;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, filter 0.15s ease;
+}
+.export-confirm-ok {
+  border-color: var(--logo-red);
+  color: #fff;
+  background: var(--logo-red);
+}
+@media (hover: hover) {
+  .export-confirm-cancel:hover {
+    border-color: var(--ui-fg);
+  }
+  .export-confirm-ok:hover {
+    filter: brightness(1.18);
+  }
+}
+
+/* Post-generation actions: download directly, or share. */
+.export-result {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.7rem;
+}
+.export-action {
+  appearance: none;
+  flex: 1;
+  border: 1px solid var(--ui-border);
+  background: var(--ui-scrim);
+  color: var(--ui-fg);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.55rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.export-action:focus-visible {
+  background: var(--ui-fg);
+  color: var(--bg);
+  outline: none;
+}
+/* While a download/share is in flight: dim + show progress, and ignore further taps. */
+.export-action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.export-result.is-busy {
+  position: relative;
+  pointer-events: none;
+}
+@media (hover: hover) {
+  .export-action:hover {
+    background: var(--ui-fg);
+    color: var(--bg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .export-overlay,
+  .export-panel,
+  .export-progress-bar {
+    transition: none;
+  }
+}

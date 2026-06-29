@@ -1,0 +1,32 @@
+{
+  "name": "lorenzclash",
+  "private": true,
+  "version": "1.0.40",
+  "description": "A WebGPU camera experience you are part of.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "analyze:audio": "uv run --python 3.12 scripts/analyze-track-structure.py"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@webgpu/types": "^0.1.70",
+    "eslint": "^10.5.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16"
+  },
+  "dependencies": {
+    "@fontsource/space-grotesk": "^5.2.10",
+    "@fontsource/space-mono": "^5.2.9",
+    "mp4-muxer": "^5.2.2",
+    "qr": "^0.6.0"
+  }
+}
