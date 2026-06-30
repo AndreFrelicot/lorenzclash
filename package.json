@@ -1,7 +1,7 @@
 {
   "name": "lorenzclash",
   "private": true,
-  "version": "1.0.40",
+  "version": "1.0.41",
   "description": "A WebGPU camera experience you are part of.",
   "license": "MIT",
   "type": "module",
@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "analyze:audio": "uv run --python 3.12 scripts/analyze-track-structure.py"
+    "analyze:audio": "uv run --python 3.12 scripts/analyze-track-structure.py",
+    "release": "node scripts/release.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
