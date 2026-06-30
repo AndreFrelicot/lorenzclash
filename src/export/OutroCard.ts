@@ -1,10 +1,10 @@
 // QR end-card overlay for the video export. The export appends a short "outro"
-// clip where the live composite keeps swirling behind a frosted dark glass card
+// clip where the live composite keeps swirling behind a dark end card
 // holding a QR code that links back to the site. This module owns the look: it
 // builds the QR matrix and paints one outro frame onto the recorder's 2D canvas.
 //
 // The QR + caption are STATIC, so they're baked once into an offscreen card (crisp,
-// integer-sized modules → scannable) and blitted each frame; only the frosted backdrop
+// integer-sized modules → scannable) and blitted each frame; only the dark backdrop
 // and the fade/scale-in animation are recomputed per frame.
 import encodeQR from 'qr';
 
@@ -18,8 +18,6 @@ type Ctx2D = OffscreenCanvasRenderingContext2D;
 
 const qrCache = new Map<string, QrMatrix>();
 const cardCache = new Map<string, OffscreenCanvas>();
-let scratch: OffscreenCanvas | null = null;
-let scratchCtx: Ctx2D | null = null;
 
 // Build (and memoise) the QR module matrix for `url`. `ecc: 'medium'` survives the video
 // recompression + the small on-screen size while staying compact.
@@ -51,6 +49,9 @@ function metrics(
   pad: number;
   cardSize: number;
   gap: number;
+  logoW: number;
+  logoH: number;
+  logoTitleGap: number;
   capTitle: number;
   capSub: number;
   capTag: number;
@@ -64,21 +65,96 @@ function metrics(
   const pad = Math.max(Math.round(short * 0.028), moduleSize * 4); // ≥ 4-module quiet zone
   const cardSize = qrPx + pad * 2;
   const gap = Math.round(short * 0.035);
+  const logoW = Math.round(short * 0.13);
+  const logoH = Math.round((logoW * 263) / 300);
+  const logoTitleGap = Math.round(short * 0.032);
   const capTitle = Math.round(short * 0.03);
   const capSub = Math.round(short * 0.02);
   const capTag = Math.round(short * 0.026);
   const cpad = Math.round(short * 0.05);
   const capBlock =
-    capTitle + Math.round(short * 0.026) + capSub + Math.round(short * 0.022) + capTag;
+    gap +
+    logoH +
+    logoTitleGap +
+    capTitle +
+    Math.round(short * 0.026) +
+    capSub +
+    Math.round(short * 0.022) +
+    capTag;
   const contW = cardSize + cpad * 2;
-  const contH = cpad + cardSize + gap + capBlock + cpad;
+  const contH = cpad + cardSize + capBlock + cpad;
   const radius = Math.round(short * 0.04);
-  return { moduleSize, pad, cardSize, gap, capTitle, capSub, capTag, cpad, contW, contH, radius };
+  return {
+    moduleSize,
+    pad,
+    cardSize,
+    gap,
+    logoW,
+    logoH,
+    logoTitleGap,
+    capTitle,
+    capSub,
+    capTag,
+    cpad,
+    contW,
+    contH,
+    radius,
+  };
 }
 
 function roundRectPath(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number): void {
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, r);
+}
+
+const LOGO_POLYGONS = [
+  {
+    fill: 'rgb(169, 0, 0)',
+    points: [
+      [-0.002, -0.001],
+      [236.845, 69.469],
+      [69.469, 236.845],
+    ],
+  },
+  {
+    fill: 'rgb(169, 0, 0)',
+    points: [
+      [299.323, 25.908],
+      [229.852, 262.755],
+      [62.476, 95.379],
+    ],
+  },
+  {
+    fill: 'rgb(246, 247, 250)',
+    points: [
+      [232.003, 98.557],
+      [211.883, 167.154],
+      [163.406, 118.677],
+    ],
+  },
+  {
+    fill: 'rgb(246, 247, 250)',
+    points: [
+      [68.435, 77.614],
+      [137.033, 97.735],
+      [88.556, 146.212],
+    ],
+  },
+] as const;
+
+function drawLogo(ctx: Ctx2D, x: number, y: number, w: number, h: number): void {
+  for (const poly of LOGO_POLYGONS) {
+    ctx.beginPath();
+    poly.points.forEach(([px, py], i) => {
+      const sx = x + (px / 300) * w;
+      const sy = y + (py / 263) * h;
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    });
+    ctx.closePath();
+    ctx.fillStyle = poly.fill;
+    ctx.fill();
+  }
 }
 
 // Bake the white QR card + caption (transparent background) once per (url, size).
@@ -115,7 +191,11 @@ function getCard(qr: QrMatrix, short: number): OffscreenCanvas {
   // Caption: host (bold) + a spaced uppercase call-to-action.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  const titleY = cardY + m.cardSize + m.gap + m.capTitle;
+  const logoX = Math.round((m.contW - m.logoW) / 2);
+  const logoY = cardY + m.cardSize + m.gap;
+  drawLogo(ctx, logoX, logoY, m.logoW, m.logoH);
+
+  const titleY = logoY + m.logoH + m.logoTitleGap + m.capTitle;
   ctx.font = `700 ${m.capTitle}px "Space Grotesk", system-ui, sans-serif`;
   ctx.fillStyle = 'rgba(247, 249, 252, 0.96)';
   ctx.fillText(qr.caption, m.contW / 2, titleY);
@@ -147,7 +227,7 @@ function smoothstep(a: number, b: number, x: number): number {
 // the card fades + scales in over the first ~18% then holds.
 export function drawOutroOverlay(
   ctx: Ctx2D,
-  frame: CanvasImageSource,
+  _frame: CanvasImageSource,
   qr: QrMatrix,
   progress: number,
 ): void {
@@ -164,46 +244,20 @@ export function drawOutroOverlay(
   const appear = smoothstep(0, 0.18, progress);
   const scale = 0.92 + 0.08 * appear;
 
-  // Frosted backdrop: whole frame downscaled then upscaled inside the card clip (cheap,
-  // Safari-robust blur — no reliance on ctx.filter).
-  const sw = Math.max(1, Math.round(w * 0.08));
-  const sh = Math.max(1, Math.round(h * 0.08));
-  if (!scratch || scratch.width !== sw || scratch.height !== sh) {
-    scratch = new OffscreenCanvas(sw, sh);
-    scratchCtx = scratch.getContext('2d');
-  }
-  if (scratchCtx) {
-    scratchCtx.imageSmoothingEnabled = true;
-    scratchCtx.drawImage(frame, 0, 0, sw, sh);
-  }
-
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(scale, scale);
   ctx.translate(-cx, -cy);
   ctx.globalAlpha = appear;
 
-  // Soft drop shadow + dark base (the base is hidden by the blur inside the clip; only its
-  // shadow remains visible around the card).
+  // Soft drop shadow + opaque dark base.
   ctx.save();
   ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
   ctx.shadowBlur = Math.round(short * 0.05);
   ctx.shadowOffsetY = Math.round(short * 0.012);
-  ctx.fillStyle = 'rgba(8, 10, 16, 0.9)';
+  ctx.fillStyle = 'rgb(8, 10, 16)';
   roundRectPath(ctx, contX, contY, m.contW, m.contH, m.radius);
   ctx.fill();
-  ctx.restore();
-
-  // Frosted interior: blurred backdrop + dark tint, clipped to the rounded card.
-  ctx.save();
-  roundRectPath(ctx, contX, contY, m.contW, m.contH, m.radius);
-  ctx.clip();
-  if (scratch) {
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(scratch, 0, 0, sw, sh, 0, 0, w, h);
-  }
-  ctx.fillStyle = 'rgba(8, 10, 16, 0.55)';
-  ctx.fillRect(contX, contY, m.contW, m.contH);
   ctx.restore();
 
   // Border in the logo red — exactly the help window's frame colour (CSS --logo-red).
