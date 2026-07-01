@@ -13,9 +13,12 @@ export type AppPhase =
 export interface StartOptions {
   camera: boolean;
   audio: boolean;
+  initialTrackSrc?: string;
 }
 
 export const DEFAULT_START_OPTIONS: StartOptions = {
   camera: true,
   audio: true,
 };
+
+export const OPTION_START_TRACK_SRC = '/audio/11_tribal_trace.m4a';

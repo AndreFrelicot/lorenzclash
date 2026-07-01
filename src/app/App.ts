@@ -302,7 +302,7 @@ export class App {
     // Audio ALWAYS starts (load + play + analyse) so the visuals are always reactive;
     // options.audio only picks the initial output — sound (true) or muted (false). Both
     // states analyse. Kicked off in the gesture window (iOS needs it); failure stays silent.
-    this.audio = new AudioEngine();
+    this.audio = new AudioEngine(undefined, { initialTrackSrc: options.initialTrackSrc });
     this.audio.onTrackChange = (name) => {
       this.controls?.setTrack(name);
       haptics.select(); // light tick when the track auto-advances

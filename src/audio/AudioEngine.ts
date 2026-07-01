@@ -18,6 +18,10 @@ export interface AudioFeatures {
   beat: number; // 0..1 onset pulse: fast attack on a bass transient, slow decay
 }
 
+export interface AudioEngineOptions {
+  initialTrackSrc?: string;
+}
+
 export const SILENT_FEATURES: AudioFeatures = {
   level: 0,
   bass: 0,
@@ -110,8 +114,19 @@ export class AudioEngine {
   // Running feature stats for the calibration log (see LOG_FEATURES).
   private readonly dbg = { n: 0, cMin: 1, cMax: 0, cSum: 0, lMax: 0, bMax: 0, tMax: 0, beatMax: 0 };
 
-  constructor(private readonly tracks: Track[] = TRACKS) {
+  constructor(
+    private readonly tracks: Track[] = TRACKS,
+    opts: AudioEngineOptions = {},
+  ) {
     this.reshuffle(-1); // initial random order → random startup track
+    const initialIndex = opts.initialTrackSrc
+      ? this.tracks.findIndex((track) => track.src === opts.initialTrackSrc)
+      : -1;
+    if (initialIndex >= 0) {
+      const orderIndex = this.order.indexOf(initialIndex);
+      if (orderIndex > 0)
+        [this.order[0], this.order[orderIndex]] = [this.order[orderIndex], this.order[0]];
+    }
     this.index = this.order[0] ?? 0;
   }
 

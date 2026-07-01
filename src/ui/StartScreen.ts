@@ -8,7 +8,11 @@
 // every platform, and the rotation set here is honoured everywhere. The acquired
 // CameraInput is handed to onStart so the running app reuses it — no second
 // getUserMedia, no flash. A Help button reveals an animated legend of the controls.
-import { DEFAULT_START_OPTIONS, type StartOptions } from '../app/AppState.ts';
+import {
+  DEFAULT_START_OPTIONS,
+  OPTION_START_TRACK_SRC,
+  type StartOptions,
+} from '../app/AppState.ts';
 import { CameraInput } from '../camera/CameraInput.ts';
 import { getMessages, onLocaleChange } from '../i18n.ts';
 import { mountLanguageSelector } from './LanguageSelector.ts';
@@ -23,7 +27,7 @@ interface PreviewHost {
 }
 
 interface OptionToggleSpec {
-  key: keyof StartOptions;
+  key: 'camera' | 'audio';
   labelKey: 'camera' | 'music';
   iconOn: IconName;
   iconOff: IconName;
@@ -283,12 +287,18 @@ export function mountStartScreen(
   // the same overlay also serves the in-scene Help button once the experience is running).
   helpButton.addEventListener('click', () => openHelp());
 
-  startButton.addEventListener('click', () => {
+  startButton.addEventListener('click', (event) => {
     started = true;
     // Stop the preview loop; the CameraInput keeps decoding for the running app.
     stopPump();
     if (!options.camera) releaseCamera();
-    onStart({ ...options }, options.camera ? camera : null);
+    onStart(
+      {
+        ...options,
+        initialTrackSrc: event.altKey ? OPTION_START_TRACK_SRC : undefined,
+      },
+      options.camera ? camera : null,
+    );
   });
 
   // ── Privacy notice ───────────────────────────────────────────────────────
