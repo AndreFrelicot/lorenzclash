@@ -1,7 +1,7 @@
 {
   "name": "lorenzclash",
   "private": true,
-  "version": "1.0.42",
+  "version": "1.0.43",
   "description": "A WebGPU camera experience you are part of.",
   "license": "MIT",
   "type": "module",
