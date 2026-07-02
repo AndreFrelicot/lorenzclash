@@ -231,8 +231,9 @@ export class SequenceRecorder {
       `[export] ${w}×${h} @ ${FPS}fps, ${Math.round(this.bitrate / 1000)} kbps, ${this.codec}`,
     );
     this.src = source;
-    // Offload encoded chunks to disk so the export list can grow without OOM. Cleared on
-    // open (session-scoped). null → IndexedDB unavailable, chunks stay in RAM.
+    // Offload encoded chunks to disk so the export list can grow without OOM. Namespaced per
+    // tab session so another open tab cannot wipe/overwrite this tab's clips.
+    // null → IndexedDB unavailable, chunks stay in RAM.
     this.store = await ClipStore.open();
     await this.refreshUsage();
     return true;
@@ -679,8 +680,12 @@ export class SequenceRecorder {
     }
     for (const seq of this.sequences) seq.thumb.close();
     this.sequences.length = 0;
-    this.store?.close();
+    const store = this.store;
     this.store = null;
+    void store
+      ?.clearSession()
+      .catch(() => {})
+      .finally(() => store.close());
   }
 
   private countNonPinned(): number {
