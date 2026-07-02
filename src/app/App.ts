@@ -79,6 +79,12 @@ function hasTuneUrlFlag(): boolean {
   return new URLSearchParams(hash).has('tune');
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (target.isContentEditable) return true;
+  return ['INPUT', 'SELECT', 'TEXTAREA'].includes(target.tagName);
+}
+
 export class App {
   private phase: AppPhase = 'boot';
 
@@ -193,6 +199,7 @@ export class App {
   private transportPop: HTMLElement | null = null;
   private padPop: HTMLElement | null = null;
   private tuning: TuningHandle | null = null;
+  private readonly tuneUrlEnabled = hasTuneUrlFlag();
 
   // Debug / layer-decomposition mode (dev): pause + per-layer slideshow + ripple grid.
   private paused = false;
@@ -249,6 +256,7 @@ export class App {
     // sound stays dead (toggling mute just changes gain on a suspended context). Resume on the
     // next tap instead; AudioEngine.resume() is a no-op unless actually suspended.
     window.addEventListener('pointerdown', this.resumeAudioOnGesture, true);
+    if (this.tuneUrlEnabled) window.addEventListener('keydown', this.handleTuneKeyDown);
     this.resizeCanvas();
     this.startDiagnostics();
 
@@ -2127,7 +2135,7 @@ export class App {
         ],
       },
     ]);
-    if (hasTuneUrlFlag()) this.tuning.reveal(true);
+    if (this.tuneUrlEnabled) this.tuning.reveal(true);
 
     // Keep the controls hidden until the user touches the artwork; auto-hide on idle.
     this.uiShell = mountUiShell(this.uiRoot);
@@ -3122,6 +3130,7 @@ export class App {
     this.transportPop = null;
     this.padPop?.remove();
     this.padPop = null;
+    if (this.tuneUrlEnabled) window.removeEventListener('keydown', this.handleTuneKeyDown);
     this.tuning?.destroy();
     this.tuning = null;
     this.legend?.destroy();
@@ -3135,6 +3144,15 @@ export class App {
   private setPhase(phase: AppPhase): void {
     this.phase = phase;
   }
+
+  private readonly handleTuneKeyDown = (event: KeyboardEvent): void => {
+    if (event.defaultPrevented) return;
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key.toLowerCase() !== 'v') return;
+    if (isEditableTarget(event.target)) return;
+    event.preventDefault();
+    this.tuning?.toggle();
+  };
 
   private readonly handleResize = (): void => {
     this.resizeCanvas();

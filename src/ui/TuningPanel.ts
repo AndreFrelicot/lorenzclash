@@ -105,6 +105,7 @@ function makeToggle(target: HTMLElement, button: HTMLElement, label: string): ()
 export interface TuningHandle {
   destroy: () => void;
   reveal: (open?: boolean) => void; // hidden until unlocked, optionally opened immediately
+  toggle: () => void;
 }
 
 export function mountTuningPanel(root: HTMLElement, groups: SliderGroup[]): TuningHandle {
@@ -158,6 +159,9 @@ export function mountTuningPanel(root: HTMLElement, groups: SliderGroup[]): Tuni
         panel.classList.remove('is-collapsed');
         renderPanelToggle();
       }
+    },
+    toggle: () => {
+      panel.classList.toggle('is-hidden');
     },
   };
 }

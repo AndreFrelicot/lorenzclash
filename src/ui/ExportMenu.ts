@@ -35,7 +35,12 @@ function canShareFiles(): boolean {
   return typeof navigator.share === 'function' && typeof navigator.canShare === 'function';
 }
 
-function downloadFile(result: ExportResult): void {
+function describeBlob(result: ExportResult): string {
+  return `${Math.round(result.blob.size / 1e6)}MB type=${result.blob.type || 'n/a'} ext=${result.ext}`;
+}
+
+function downloadFile(result: ExportResult, source = 'direct'): void {
+  console.info(`[export-download] downloadFile source=${source} ${describeBlob(result)}`);
   const url = URL.createObjectURL(result.blob);
   const a = document.createElement('a');
   a.href = url;
@@ -44,6 +49,7 @@ function downloadFile(result: ExportResult): void {
   // In the DOM before click() — some browsers ignore a detached anchor's download.
   document.body.appendChild(a);
   a.click();
+  console.info(`[export-download] anchor click dispatched source=${source}`);
   a.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
@@ -51,14 +57,14 @@ function downloadFile(result: ExportResult): void {
 async function shareFile(result: ExportResult): Promise<void> {
   const file = new File([result.blob], `lorenz-clash.${result.ext}`, { type: result.blob.type });
   if (!navigator.canShare?.({ files: [file] })) {
-    downloadFile(result);
+    downloadFile(result, 'share-fallback');
     return;
   }
   try {
     await navigator.share({ files: [file], title: 'Lorenz Clash' });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return;
-    downloadFile(result);
+    downloadFile(result, 'share-fallback');
   }
 }
 
@@ -107,7 +113,6 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
   let resultValid = false; // a generation is current — Generate stays disabled until params change
   let delivering = false; // a download/share is in flight
   let lastResult: ExportResult | null = null;
-  let downloadUrl: string | null = null;
   let order: number[] = []; // clip ids, user-arranged (export + continuous-audio order)
   let renderToken = 0; // cancels stale progressive row builds
 
@@ -278,51 +283,71 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
   const resultRow = document.createElement('div');
   resultRow.className = 'export-result';
   resultRow.style.display = 'none';
-  const downloadBtn = document.createElement('a');
-  downloadBtn.href = '#';
+  const downloadBtn = document.createElement('button');
+  downloadBtn.type = 'button';
   downloadBtn.className = 'export-action';
-  downloadBtn.rel = 'noopener';
-  downloadBtn.addEventListener('click', (event) => {
-    if (!downloadUrl) event.preventDefault();
-  });
   const shareBtn = document.createElement('button');
   shareBtn.type = 'button';
   shareBtn.className = 'export-action';
-  shareBtn.addEventListener('click', () => void deliverShare());
+  shareBtn.addEventListener('click', () => void deliver('share'));
   resultRow.append(downloadBtn, shareBtn);
   panel.appendChild(resultRow);
 
-  function clearDownloadLink(): void {
-    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
-    downloadUrl = null;
-    downloadBtn.href = '#';
-    downloadBtn.removeAttribute('download');
-    downloadBtn.setAttribute('aria-disabled', 'true');
+  let downloadProbeSeq = 0;
+
+  function logDownloadProbe(kind: string, event?: PointerEvent | MouseEvent): void {
+    if (kind === 'pointerdown' || downloadProbeSeq === 0) downloadProbeSeq += 1;
+    const result = lastResult;
+    const rect = downloadBtn.getBoundingClientRect();
+    const eventBits = event
+      ? ` pointer=${'pointerType' in event ? event.pointerType : 'mouse'} button=${event.button} ` +
+        `client=${Math.round(event.clientX)},${Math.round(event.clientY)}`
+      : '';
+    console.info(
+      `[export-download] #${downloadProbeSeq} ${kind}` +
+        ` hasResult=${result ? 'yes' : 'no'}` +
+        ` resultValid=${resultValid}` +
+        ` delivering=${delivering}` +
+        ` disabled=${downloadBtn.disabled}` +
+        ` rowDisplay=${getComputedStyle(resultRow).display}` +
+        ` blob=${result ? describeBlob(result) : 'n/a'}` +
+        ` rect=${Math.round(rect.left)},${Math.round(rect.top)},${Math.round(rect.width)}×${Math.round(rect.height)}` +
+        eventBits,
+    );
   }
 
-  function prepareDownloadLink(result: ExportResult): void {
-    clearDownloadLink();
-    downloadUrl = URL.createObjectURL(result.blob);
-    downloadBtn.href = downloadUrl;
-    downloadBtn.download = `lorenz-clash.${result.ext}`;
-    downloadBtn.removeAttribute('aria-disabled');
-  }
+  downloadBtn.addEventListener('pointerdown', (event) => logDownloadProbe('pointerdown', event));
+  downloadBtn.addEventListener('click', (event) => {
+    logDownloadProbe('click', event);
+    void deliver('download');
+  });
 
-  // Share with an explicit busy state — the sheet can lag, and without feedback it feels
-  // unresponsive and invites repeat taps. Guard against re-entry.
-  async function deliverShare(): Promise<void> {
-    if (!lastResult || delivering) return;
+  // Download/share with an explicit busy state — the op (esp. the share sheet) can lag, and
+  // without feedback it feels unresponsive and invites repeat taps. Guard against re-entry.
+  async function deliver(action: 'download' | 'share'): Promise<void> {
+    const isDownload = action === 'download';
+    if (isDownload) logDownloadProbe('deliver-request');
+    if (!lastResult || delivering) {
+      if (isDownload) logDownloadProbe('deliver-blocked');
+      return;
+    }
     delivering = true;
     resultRow.classList.add('is-busy');
-    downloadBtn.setAttribute('aria-disabled', 'true');
+    downloadBtn.disabled = true;
     shareBtn.disabled = true;
     try {
-      await shareFile(lastResult);
+      if (isDownload) {
+        logDownloadProbe('deliver-start');
+        downloadFile(lastResult, 'button');
+      } else {
+        await shareFile(lastResult);
+      }
     } finally {
       delivering = false;
       resultRow.classList.remove('is-busy');
-      if (downloadUrl) downloadBtn.removeAttribute('aria-disabled');
+      downloadBtn.disabled = false;
       shareBtn.disabled = false;
+      if (isDownload) logDownloadProbe('deliver-end');
     }
   }
 
@@ -340,7 +365,6 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
 
   function invalidateResult(): void {
     lastResult = null;
-    clearDownloadLink();
     resultValid = false; // params/order/inclusion changed → allow a fresh generation
     resultRow.style.display = 'none';
     refreshGenerateBtn();
@@ -648,7 +672,6 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
       );
       setProgress(1);
       lastResult = result;
-      prepareDownloadLink(result);
       resultValid = true; // a current result exists → Generate stays disabled until a change
       haptics.success(); // two-beat flourish: the video finished rendering
       shareBtn.style.display = canShareFiles() ? '' : 'none';
@@ -740,7 +763,6 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
       window.removeEventListener('keydown', onKey);
       for (const url of previewUrls.values()) URL.revokeObjectURL(url);
       previewUrls.clear();
-      clearDownloadLink();
       overlay.remove();
     },
   };
