@@ -107,6 +107,7 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
   let resultValid = false; // a generation is current — Generate stays disabled until params change
   let delivering = false; // a download/share is in flight
   let lastResult: ExportResult | null = null;
+  let downloadUrl: string | null = null;
   let order: number[] = []; // clip ids, user-arranged (export + continuous-audio order)
   let renderToken = 0; // cancels stale progressive row builds
 
@@ -277,32 +278,50 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
   const resultRow = document.createElement('div');
   resultRow.className = 'export-result';
   resultRow.style.display = 'none';
-  const downloadBtn = document.createElement('button');
-  downloadBtn.type = 'button';
+  const downloadBtn = document.createElement('a');
+  downloadBtn.href = '#';
   downloadBtn.className = 'export-action';
-  downloadBtn.addEventListener('click', () => void deliver('download'));
+  downloadBtn.rel = 'noopener';
+  downloadBtn.addEventListener('click', (event) => {
+    if (!downloadUrl) event.preventDefault();
+  });
   const shareBtn = document.createElement('button');
   shareBtn.type = 'button';
   shareBtn.className = 'export-action';
-  shareBtn.addEventListener('click', () => void deliver('share'));
+  shareBtn.addEventListener('click', () => void deliverShare());
   resultRow.append(downloadBtn, shareBtn);
   panel.appendChild(resultRow);
 
-  // Download/share with an explicit busy state — the op (esp. the share sheet) can lag, and
-  // without feedback it feels unresponsive and invites repeat taps. Guard against re-entry.
-  async function deliver(action: 'download' | 'share'): Promise<void> {
+  function clearDownloadLink(): void {
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    downloadUrl = null;
+    downloadBtn.href = '#';
+    downloadBtn.removeAttribute('download');
+    downloadBtn.setAttribute('aria-disabled', 'true');
+  }
+
+  function prepareDownloadLink(result: ExportResult): void {
+    clearDownloadLink();
+    downloadUrl = URL.createObjectURL(result.blob);
+    downloadBtn.href = downloadUrl;
+    downloadBtn.download = `lorenz-clash.${result.ext}`;
+    downloadBtn.removeAttribute('aria-disabled');
+  }
+
+  // Share with an explicit busy state — the sheet can lag, and without feedback it feels
+  // unresponsive and invites repeat taps. Guard against re-entry.
+  async function deliverShare(): Promise<void> {
     if (!lastResult || delivering) return;
     delivering = true;
     resultRow.classList.add('is-busy');
-    downloadBtn.disabled = true;
+    downloadBtn.setAttribute('aria-disabled', 'true');
     shareBtn.disabled = true;
     try {
-      if (action === 'download') downloadFile(lastResult);
-      else await shareFile(lastResult);
+      await shareFile(lastResult);
     } finally {
       delivering = false;
       resultRow.classList.remove('is-busy');
-      downloadBtn.disabled = false;
+      if (downloadUrl) downloadBtn.removeAttribute('aria-disabled');
       shareBtn.disabled = false;
     }
   }
@@ -321,6 +340,7 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
 
   function invalidateResult(): void {
     lastResult = null;
+    clearDownloadLink();
     resultValid = false; // params/order/inclusion changed → allow a fresh generation
     resultRow.style.display = 'none';
     refreshGenerateBtn();
@@ -628,6 +648,7 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
       );
       setProgress(1);
       lastResult = result;
+      prepareDownloadLink(result);
       resultValid = true; // a current result exists → Generate stays disabled until a change
       haptics.success(); // two-beat flourish: the video finished rendering
       shareBtn.style.display = canShareFiles() ? '' : 'none';
@@ -719,6 +740,7 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
       window.removeEventListener('keydown', onKey);
       for (const url of previewUrls.values()) URL.revokeObjectURL(url);
       previewUrls.clear();
+      clearDownloadLink();
       overlay.remove();
     },
   };

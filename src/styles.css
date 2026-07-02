@@ -1935,6 +1935,7 @@ html[dir='rtl'] .lang-option {
 /* Remove the iOS ~300 ms tap delay on the dialog's controls (e.g. Synced/Continuous).
    The drag handle keeps touch-action:none, so it's excluded (it's a div, not a button). */
 .export-panel button,
+.export-panel a.export-action,
 .export-row-media {
   touch-action: manipulation;
 }
@@ -2299,6 +2300,8 @@ html[dir='rtl'] .lang-option {
   padding: 0.55rem 1rem;
   border-radius: 999px;
   cursor: pointer;
+  text-align: center;
+  text-decoration: none;
   transition: background 0.15s ease, color 0.15s ease;
 }
 .export-action:focus-visible {
@@ -2307,7 +2310,8 @@ html[dir='rtl'] .lang-option {
   outline: none;
 }
 /* While a download/share is in flight: dim + show progress, and ignore further taps. */
-.export-action:disabled {
+.export-action:disabled,
+.export-action[aria-disabled='true'] {
   opacity: 0.5;
   cursor: default;
 }
