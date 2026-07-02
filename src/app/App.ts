@@ -42,6 +42,7 @@ import { SequenceRecorder, type Sequence } from '../export/SequenceRecorder.ts';
 import type { ClipPayload } from '../export/ClipStore.ts';
 import { encodeSequences } from '../export/Mp4Encoder.ts';
 import { buildQr, drawOutroOverlay } from '../export/OutroCard.ts';
+import { getMessages } from '../i18n.ts';
 
 // Curve-speed range driven by the XY pad — matches the Speed tuning sliders.
 const SPEED_MIN = 0.1;
@@ -2911,7 +2912,7 @@ export class App {
   private requestExportOpen(): void {
     if (this.recorder?.isRecording) {
       this.pendingExportOpen = true;
-      this.controls?.announce('Finishing capture…');
+      this.controls?.announce(getMessages().controls.finishingCapture);
     } else {
       this.exportMenu?.open();
     }
