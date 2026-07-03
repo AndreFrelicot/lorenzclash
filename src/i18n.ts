@@ -342,7 +342,7 @@ const en: Translation = {
         'Modern desktop browser, recent Android flagship or performance-focused upper-midrange phone running Chrome on Android 12+, iPhone SE 2022 / iPhone 13 or newer, or iPad Pro 2018 or newer.',
       olderDevicesName: 'Older devices',
       olderDevicesDesc:
-        'Budget/midrange Android phones, including some Galaxy A-series devices, may be slow. Older devices may run the experience, but camera mode and video export can heat the device or reduce frame rate.',
+        'Android performance varies widely. Budget and midrange phones may reduce frame rate, especially with camera mode and video export.',
     },
   },
   exportMenu: {
@@ -502,7 +502,7 @@ export const messages: Record<Locale, Translation> = {
           'Navigateur desktop moderne, Android flagship récent ou milieu de gamme performant avec Chrome sur Android 12+, iPhone SE 2022 / iPhone 13 ou plus récent, ou iPad Pro 2018 ou plus récent.',
         olderDevicesName: 'Anciens appareils',
         olderDevicesDesc:
-          'Les Android budget/milieu de gamme, dont certains Galaxy A, peuvent être lents. Les anciens appareils peuvent fonctionner, mais la caméra et l’export vidéo peuvent chauffer l’appareil ou réduire la fluidité.',
+          'Les performances Android varient beaucoup. Les modèles budget ou milieu de gamme peuvent réduire la fluidité, surtout avec la caméra et l’export vidéo.',
       },
     },
     exportMenu: {
@@ -1463,7 +1463,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Moderner Desktop-Browser, aktuelles Android-Flaggschiff oder leistungsstarkes oberes Mittelklassegerät mit Chrome auf Android 12+, iPhone SE 2022 / iPhone 13 oder neuer oder iPad Pro 2018 oder neuer.',
         olderDevicesName: 'Ältere Geräte',
         olderDevicesDesc:
-          'Günstige und Mittelklasse-Android-Geräte, darunter manche Galaxy-A-Modelle, können langsam sein. Ältere Geräte können funktionieren, aber Kameramodus und Videoexport können das Gerät erwärmen oder die Framerate senken.',
+          'Die Android-Leistung variiert stark. Günstige und Mittelklassegeräte können die Framerate senken, besonders mit Kameramodus und Videoexport.',
       },
     },
     es: {
@@ -1534,7 +1534,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Navegador de escritorio moderno, Android flagship reciente o gama media-alta orientada al rendimiento con Chrome en Android 12+, iPhone SE 2022 / iPhone 13 o posterior, o iPad Pro 2018 o posterior.',
         olderDevicesName: 'Dispositivos antiguos',
         olderDevicesDesc:
-          'Los Android económicos o de gama media, incluidos algunos Galaxy A, pueden ser lentos. Los dispositivos antiguos pueden funcionar, pero el modo cámara y la exportación de video pueden calentar el dispositivo o reducir la fluidez.',
+          'El rendimiento en Android varía mucho. Los modelos económicos o de gama media pueden reducir la fluidez, especialmente con el modo cámara y la exportación de video.',
       },
     },
     'pt-BR': {
@@ -1605,7 +1605,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Navegador desktop moderno, Android flagship recente ou intermediário premium focado em desempenho com Chrome no Android 12+, iPhone SE 2022 / iPhone 13 ou posterior, ou iPad Pro 2018 ou posterior.',
         olderDevicesName: 'Dispositivos antigos',
         olderDevicesDesc:
-          'Androids de entrada/intermediários, incluindo alguns Galaxy A, podem ficar lentos. Dispositivos antigos podem rodar a experiência, mas o modo câmera e a exportação de vídeo podem aquecer o aparelho ou reduzir a fluidez.',
+          'O desempenho no Android varia muito. Aparelhos de entrada ou intermediários podem reduzir a fluidez, especialmente com modo câmera e exportação de vídeo.',
       },
     },
     ja: {
@@ -1675,7 +1675,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           '最新のデスクトップブラウザ、Android 12+ の Chrome で動く新しめの Android フラッグシップまたは高性能ミドルハイ端末、iPhone SE 2022 / iPhone 13 以降、または iPad Pro 2018 以降。',
         olderDevicesName: '古い端末',
         olderDevicesDesc:
-          '低価格/ミドルレンジ Android（Galaxy A シリーズの一部を含む）は遅くなる場合があります。古い端末でも動く場合がありますが、カメラモードや動画書き出しで発熱したりフレームレートが下がることがあります。',
+          'Android の性能差は大きく、低価格/ミドルレンジ端末では、特にカメラモードや動画書き出しでフレームレートが下がることがあります。',
       },
     },
     ko: {
@@ -1745,7 +1745,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           '최신 데스크톱 브라우저, Android 12+ Chrome을 실행하는 최신 Android 플래그십 또는 성능 중심 상위 중급폰, iPhone SE 2022 / iPhone 13 이후, 또는 iPad Pro 2018 이후.',
         olderDevicesName: '오래된 기기',
         olderDevicesDesc:
-          '일부 Galaxy A 시리즈를 포함한 보급형/중급 Android 폰은 느릴 수 있습니다. 오래된 기기에서도 실행될 수 있지만 카메라 모드와 영상 내보내기가 기기를 뜨겁게 하거나 프레임레이트를 낮출 수 있습니다.',
+          'Android 성능은 기기마다 크게 다릅니다. 보급형/중급 기기는 특히 카메라 모드와 영상 내보내기에서 프레임레이트가 낮아질 수 있습니다.',
       },
     },
     'zh-Hans': {
@@ -1815,7 +1815,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           '现代桌面浏览器、运行 Android 12+ Chrome 的近期 Android 旗舰机或性能型中高端机、iPhone SE 2022 / iPhone 13 或更新机型，或 iPad Pro 2018 或更新机型。',
         olderDevicesName: '旧设备',
         olderDevicesDesc:
-          '入门/中端 Android 手机（包括部分 Galaxy A 系列）可能会很慢。旧设备可能也能运行，但相机模式和视频导出可能会使设备发热或降低帧率。',
+          'Android 性能差异很大。入门/中端手机可能会降低帧率，尤其是在相机模式和视频导出时。',
       },
     },
     th: {
@@ -1885,7 +1885,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'เบราว์เซอร์เดสก์ท็อปรุ่นใหม่, Android เรือธงรุ่นใหม่หรือรุ่นกลางบนที่เน้นประสิทธิภาพพร้อม Chrome บน Android 12+, iPhone SE 2022 / iPhone 13 หรือใหม่กว่า, หรือ iPad Pro 2018 หรือใหม่กว่า',
         olderDevicesName: 'อุปกรณ์เก่า',
         olderDevicesDesc:
-          'Android ราคาประหยัด/ระดับกลาง รวมถึง Galaxy A บางรุ่น อาจทำงานช้า อุปกรณ์เก่าอาจใช้งานได้ แต่โหมดกล้องและการส่งออกวิดีโออาจทำให้เครื่องร้อนหรือเฟรมเรตลดลง',
+          'ประสิทธิภาพ Android แตกต่างกันมาก เครื่องราคาประหยัด/ระดับกลางอาจลดเฟรมเรต โดยเฉพาะในโหมดกล้องและการส่งออกวิดีโอ',
       },
     },
     hi: {
@@ -1955,7 +1955,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'आधुनिक डेस्कटॉप ब्राउज़र, Android 12+ Chrome वाला हाल का Android फ्लैगशिप या प्रदर्शन-केंद्रित ऊपरी मिडरेंज फ़ोन, iPhone SE 2022 / iPhone 13 या नया, या iPad Pro 2018 या नया।',
         olderDevicesName: 'पुराने डिवाइस',
         olderDevicesDesc:
-          'बजट/मिडरेंज Android फ़ोन, जिनमें कुछ Galaxy A-series डिवाइस शामिल हैं, धीमे हो सकते हैं। पुराने डिवाइस अनुभव चला सकते हैं, लेकिन कैमरा मोड और वीडियो निर्यात से डिवाइस गर्म हो सकता है या फ़्रेमरेट घट सकता है।',
+          'Android प्रदर्शन काफ़ी अलग-अलग हो सकता है। बजट/मिडरेंज फ़ोन खासकर कैमरा मोड और वीडियो निर्यात में फ़्रेमरेट घटा सकते हैं।',
       },
     },
     id: {
@@ -2025,7 +2025,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Browser desktop modern, Android flagship terbaru atau upper-midrange berfokus performa dengan Chrome di Android 12+, iPhone SE 2022 / iPhone 13 atau lebih baru, atau iPad Pro 2018 atau lebih baru.',
         olderDevicesName: 'Perangkat lama',
         olderDevicesDesc:
-          'Ponsel Android budget/midrange, termasuk sebagian Galaxy A-series, mungkin lambat. Perangkat lama mungkin berjalan, tetapi mode kamera dan ekspor video bisa membuat perangkat panas atau menurunkan frame rate.',
+          'Performa Android sangat bervariasi. Ponsel budget/midrange dapat menurunkan frame rate, terutama dengan mode kamera dan ekspor video.',
       },
     },
     ar: {
@@ -2095,7 +2095,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'متصفح سطح مكتب حديث، هاتف Android رائد حديث أو فئة متوسطة عليا موجهة للأداء مع Chrome على Android 12+، iPhone SE 2022 / iPhone 13 أو أحدث، أو iPad Pro 2018 أو أحدث.',
         olderDevicesName: 'الأجهزة القديمة',
         olderDevicesDesc:
-          'هواتف Android الاقتصادية/المتوسطة، بما فيها بعض أجهزة Galaxy A، قد تكون بطيئة. قد تعمل الأجهزة القديمة، لكن وضع الكاميرا وتصدير الفيديو قد يرفعان حرارة الجهاز أو يخفضان معدل الإطارات.',
+          'يتفاوت أداء Android كثيرًا. قد تخفض الهواتف الاقتصادية/المتوسطة معدل الإطارات، خصوصًا مع وضع الكاميرا وتصدير الفيديو.',
       },
     },
     ru: {
@@ -2165,7 +2165,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Современный desktop-браузер, свежий Android-флагман или производительный верхний средний класс с Chrome на Android 12+, iPhone SE 2022 / iPhone 13 или новее, либо iPad Pro 2018 или новее.',
         olderDevicesName: 'Старые устройства',
         olderDevicesDesc:
-          'Бюджетные и средние Android-телефоны, включая некоторые Galaxy A, могут работать медленно. Старые устройства могут работать, но камера и экспорт видео могут нагревать устройство или снижать frame rate.',
+          'Производительность Android сильно различается. Бюджетные и средние телефоны могут снижать frame rate, особенно в режиме камеры и при экспорте видео.',
       },
     },
     it: {
@@ -2235,7 +2235,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Browser desktop moderno, Android flagship recente o upper-midrange orientato alle prestazioni con Chrome su Android 12+, iPhone SE 2022 / iPhone 13 o successivo, oppure iPad Pro 2018 o successivo.',
         olderDevicesName: 'Dispositivi vecchi',
         olderDevicesDesc:
-          'Gli Android economici/midrange, inclusi alcuni Galaxy A, possono essere lenti. I dispositivi più vecchi possono funzionare, ma camera ed export video possono scaldare il dispositivo o ridurre il frame rate.',
+          'Le prestazioni Android variano molto. I telefoni economici o midrange possono ridurre il frame rate, soprattutto con camera ed export video.',
       },
     },
     tr: {
@@ -2305,7 +2305,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Modern desktop tarayıcı, Android 12+ Chrome kullanan yeni Android amiral gemisi veya performans odaklı üst-orta segment telefon, iPhone SE 2022 / iPhone 13 veya sonrası, ya da iPad Pro 2018 veya sonrası.',
         olderDevicesName: 'Eski cihazlar',
         olderDevicesDesc:
-          'Bazı Galaxy A modelleri dahil bütçe/orta segment Android telefonlar yavaş olabilir. Eski cihazlar çalışabilir, ancak kamera modu ve video dışa aktarma cihazı ısıtabilir veya frame rate düşürebilir.',
+          'Android performansı çok değişkendir. Bütçe/orta segment telefonlar özellikle kamera modu ve video dışa aktarmada frame rate düşürebilir.',
       },
     },
     bn: {
@@ -2375,7 +2375,7 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'আধুনিক ডেস্কটপ ব্রাউজার, Android 12+ Chrome চালানো সাম্প্রতিক Android ফ্ল্যাগশিপ বা পারফরম্যান্স-কেন্দ্রিক upper-midrange ফোন, iPhone SE 2022 / iPhone 13 বা নতুন, অথবা iPad Pro 2018 বা নতুন।',
         olderDevicesName: 'পুরোনো ডিভাইস',
         olderDevicesDesc:
-          'বাজেট/মিডরেঞ্জ Android ফোন, কিছু Galaxy A-series সহ, ধীর হতে পারে। পুরোনো ডিভাইসে চলতে পারে, কিন্তু ক্যামেরা মোড ও ভিডিও রপ্তানি ডিভাইস গরম করতে বা ফ্রেমরেট কমাতে পারে।',
+          'Android পারফরম্যান্স অনেক ভিন্ন হতে পারে। বাজেট/মিডরেঞ্জ ফোনে, বিশেষ করে ক্যামেরা মোড ও ভিডিও রপ্তানিতে, ফ্রেমরেট কমতে পারে।',
       },
     },
   };
