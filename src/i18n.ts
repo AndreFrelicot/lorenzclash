@@ -339,10 +339,10 @@ const en: Translation = {
       browserDesc: 'Lorenz Clash requires a recent WebGPU-capable browser and a secure HTTPS connection.',
       recommendedName: 'Recommended',
       recommendedDesc:
-        'Modern desktop browser, recent Android phone from 2021 or newer running Chrome on Android 12+, iPhone SE 2022 / iPhone 13 or newer, or iPad Pro 2018 or newer.',
+        'Modern desktop browser, recent Android flagship or performance-focused upper-midrange phone running Chrome on Android 12+, iPhone SE 2022 / iPhone 13 or newer, or iPad Pro 2018 or newer.',
       olderDevicesName: 'Older devices',
       olderDevicesDesc:
-        'Older devices may run the experience, but camera mode and video export can heat the device or reduce frame rate.',
+        'Budget/midrange Android phones, including some Galaxy A-series devices, may be slow. Older devices may run the experience, but camera mode and video export can heat the device or reduce frame rate.',
     },
   },
   exportMenu: {
@@ -499,10 +499,10 @@ export const messages: Record<Locale, Translation> = {
         browserDesc: 'Lorenz Clash nécessite un navigateur récent compatible WebGPU et une connexion HTTPS sécurisée.',
         recommendedName: 'Recommandé',
         recommendedDesc:
-          'Navigateur desktop moderne, téléphone Android récent de 2021 ou plus récent avec Chrome sur Android 12+, iPhone SE 2022 / iPhone 13 ou plus récent, ou iPad Pro 2018 ou plus récent.',
+          'Navigateur desktop moderne, Android flagship récent ou milieu de gamme performant avec Chrome sur Android 12+, iPhone SE 2022 / iPhone 13 ou plus récent, ou iPad Pro 2018 ou plus récent.',
         olderDevicesName: 'Anciens appareils',
         olderDevicesDesc:
-          'Les anciens appareils peuvent fonctionner, mais la caméra et l’export vidéo peuvent chauffer l’appareil ou réduire la fluidité.',
+          'Les Android budget/milieu de gamme, dont certains Galaxy A, peuvent être lents. Les anciens appareils peuvent fonctionner, mais la caméra et l’export vidéo peuvent chauffer l’appareil ou réduire la fluidité.',
       },
     },
     exportMenu: {
@@ -1460,10 +1460,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Lorenz Clash benötigt einen aktuellen WebGPU-fähigen Browser und eine sichere HTTPS-Verbindung.',
         recommendedName: 'Empfohlen',
         recommendedDesc:
-          'Moderner Desktop-Browser, aktuelles Android-Telefon ab 2021 mit Chrome auf Android 12+, iPhone SE 2022 / iPhone 13 oder neuer oder iPad Pro 2018 oder neuer.',
+          'Moderner Desktop-Browser, aktuelles Android-Flaggschiff oder leistungsstarkes oberes Mittelklassegerät mit Chrome auf Android 12+, iPhone SE 2022 / iPhone 13 oder neuer oder iPad Pro 2018 oder neuer.',
         olderDevicesName: 'Ältere Geräte',
         olderDevicesDesc:
-          'Ältere Geräte können funktionieren, aber Kameramodus und Videoexport können das Gerät erwärmen oder die Framerate senken.',
+          'Günstige und Mittelklasse-Android-Geräte, darunter manche Galaxy-A-Modelle, können langsam sein. Ältere Geräte können funktionieren, aber Kameramodus und Videoexport können das Gerät erwärmen oder die Framerate senken.',
       },
     },
     es: {
@@ -1531,10 +1531,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Lorenz Clash requiere un navegador reciente compatible con WebGPU y una conexión HTTPS segura.',
         recommendedName: 'Recomendado',
         recommendedDesc:
-          'Navegador de escritorio moderno, teléfono Android reciente de 2021 o posterior con Chrome en Android 12+, iPhone SE 2022 / iPhone 13 o posterior, o iPad Pro 2018 o posterior.',
+          'Navegador de escritorio moderno, Android flagship reciente o gama media-alta orientada al rendimiento con Chrome en Android 12+, iPhone SE 2022 / iPhone 13 o posterior, o iPad Pro 2018 o posterior.',
         olderDevicesName: 'Dispositivos antiguos',
         olderDevicesDesc:
-          'Los dispositivos antiguos pueden funcionar, pero el modo cámara y la exportación de video pueden calentar el dispositivo o reducir la fluidez.',
+          'Los Android económicos o de gama media, incluidos algunos Galaxy A, pueden ser lentos. Los dispositivos antiguos pueden funcionar, pero el modo cámara y la exportación de video pueden calentar el dispositivo o reducir la fluidez.',
       },
     },
     'pt-BR': {
@@ -1602,10 +1602,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
           'Lorenz Clash requer um navegador recente compatível com WebGPU e uma conexão HTTPS segura.',
         recommendedName: 'Recomendado',
         recommendedDesc:
-          'Navegador desktop moderno, telefone Android recente de 2021 ou posterior com Chrome no Android 12+, iPhone SE 2022 / iPhone 13 ou posterior, ou iPad Pro 2018 ou posterior.',
+          'Navegador desktop moderno, Android flagship recente ou intermediário premium focado em desempenho com Chrome no Android 12+, iPhone SE 2022 / iPhone 13 ou posterior, ou iPad Pro 2018 ou posterior.',
         olderDevicesName: 'Dispositivos antigos',
         olderDevicesDesc:
-          'Dispositivos antigos podem rodar a experiência, mas o modo câmera e a exportação de vídeo podem aquecer o aparelho ou reduzir a fluidez.',
+          'Androids de entrada/intermediários, incluindo alguns Galaxy A, podem ficar lentos. Dispositivos antigos podem rodar a experiência, mas o modo câmera e a exportação de vídeo podem aquecer o aparelho ou reduzir a fluidez.',
       },
     },
     ja: {
@@ -1672,10 +1672,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash には、WebGPU 対応の新しいブラウザと安全な HTTPS 接続が必要です。',
         recommendedName: '推奨',
         recommendedDesc:
-          '最新のデスクトップブラウザ、2021年以降の Android 端末（Android 12+ の Chrome）、iPhone SE 2022 / iPhone 13 以降、または iPad Pro 2018 以降。',
+          '最新のデスクトップブラウザ、Android 12+ の Chrome で動く新しめの Android フラッグシップまたは高性能ミドルハイ端末、iPhone SE 2022 / iPhone 13 以降、または iPad Pro 2018 以降。',
         olderDevicesName: '古い端末',
         olderDevicesDesc:
-          '古い端末でも動く場合がありますが、カメラモードや動画書き出しで発熱したりフレームレートが下がることがあります。',
+          '低価格/ミドルレンジ Android（Galaxy A シリーズの一部を含む）は遅くなる場合があります。古い端末でも動く場合がありますが、カメラモードや動画書き出しで発熱したりフレームレートが下がることがあります。',
       },
     },
     ko: {
@@ -1742,10 +1742,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash에는 WebGPU를 지원하는 최신 브라우저와 안전한 HTTPS 연결이 필요합니다.',
         recommendedName: '권장',
         recommendedDesc:
-          '최신 데스크톱 브라우저, Android 12+ Chrome을 실행하는 2021년 이후 Android 휴대폰, iPhone SE 2022 / iPhone 13 이후, 또는 iPad Pro 2018 이후.',
+          '최신 데스크톱 브라우저, Android 12+ Chrome을 실행하는 최신 Android 플래그십 또는 성능 중심 상위 중급폰, iPhone SE 2022 / iPhone 13 이후, 또는 iPad Pro 2018 이후.',
         olderDevicesName: '오래된 기기',
         olderDevicesDesc:
-          '오래된 기기에서도 실행될 수 있지만 카메라 모드와 영상 내보내기가 기기를 뜨겁게 하거나 프레임레이트를 낮출 수 있습니다.',
+          '일부 Galaxy A 시리즈를 포함한 보급형/중급 Android 폰은 느릴 수 있습니다. 오래된 기기에서도 실행될 수 있지만 카메라 모드와 영상 내보내기가 기기를 뜨겁게 하거나 프레임레이트를 낮출 수 있습니다.',
       },
     },
     'zh-Hans': {
@@ -1812,10 +1812,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash 需要支持 WebGPU 的新款浏览器，以及安全的 HTTPS 连接。',
         recommendedName: '推荐',
         recommendedDesc:
-          '现代桌面浏览器、2021 年或更新的 Android 手机（Android 12+ 上的 Chrome）、iPhone SE 2022 / iPhone 13 或更新机型，或 iPad Pro 2018 或更新机型。',
+          '现代桌面浏览器、运行 Android 12+ Chrome 的近期 Android 旗舰机或性能型中高端机、iPhone SE 2022 / iPhone 13 或更新机型，或 iPad Pro 2018 或更新机型。',
         olderDevicesName: '旧设备',
         olderDevicesDesc:
-          '旧设备可能也能运行，但相机模式和视频导出可能会使设备发热或降低帧率。',
+          '入门/中端 Android 手机（包括部分 Galaxy A 系列）可能会很慢。旧设备可能也能运行，但相机模式和视频导出可能会使设备发热或降低帧率。',
       },
     },
     th: {
@@ -1882,10 +1882,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash ต้องใช้เบราว์เซอร์รุ่นใหม่ที่รองรับ WebGPU และการเชื่อมต่อ HTTPS ที่ปลอดภัย',
         recommendedName: 'แนะนำ',
         recommendedDesc:
-          'เบราว์เซอร์เดสก์ท็อปรุ่นใหม่, โทรศัพท์ Android ปี 2021 หรือใหม่กว่าที่ใช้ Chrome บน Android 12+, iPhone SE 2022 / iPhone 13 หรือใหม่กว่า, หรือ iPad Pro 2018 หรือใหม่กว่า',
+          'เบราว์เซอร์เดสก์ท็อปรุ่นใหม่, Android เรือธงรุ่นใหม่หรือรุ่นกลางบนที่เน้นประสิทธิภาพพร้อม Chrome บน Android 12+, iPhone SE 2022 / iPhone 13 หรือใหม่กว่า, หรือ iPad Pro 2018 หรือใหม่กว่า',
         olderDevicesName: 'อุปกรณ์เก่า',
         olderDevicesDesc:
-          'อุปกรณ์เก่าอาจใช้งานได้ แต่โหมดกล้องและการส่งออกวิดีโออาจทำให้เครื่องร้อนหรือเฟรมเรตลดลง',
+          'Android ราคาประหยัด/ระดับกลาง รวมถึง Galaxy A บางรุ่น อาจทำงานช้า อุปกรณ์เก่าอาจใช้งานได้ แต่โหมดกล้องและการส่งออกวิดีโออาจทำให้เครื่องร้อนหรือเฟรมเรตลดลง',
       },
     },
     hi: {
@@ -1952,10 +1952,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash के लिए WebGPU-सक्षम नया ब्राउज़र और सुरक्षित HTTPS कनेक्शन चाहिए।',
         recommendedName: 'सुझाव',
         recommendedDesc:
-          'आधुनिक डेस्कटॉप ब्राउज़र, 2021 या बाद का Android फ़ोन जिसमें Android 12+ पर Chrome हो, iPhone SE 2022 / iPhone 13 या नया, या iPad Pro 2018 या नया।',
+          'आधुनिक डेस्कटॉप ब्राउज़र, Android 12+ Chrome वाला हाल का Android फ्लैगशिप या प्रदर्शन-केंद्रित ऊपरी मिडरेंज फ़ोन, iPhone SE 2022 / iPhone 13 या नया, या iPad Pro 2018 या नया।',
         olderDevicesName: 'पुराने डिवाइस',
         olderDevicesDesc:
-          'पुराने डिवाइस अनुभव चला सकते हैं, लेकिन कैमरा मोड और वीडियो निर्यात से डिवाइस गर्म हो सकता है या फ़्रेमरेट घट सकता है।',
+          'बजट/मिडरेंज Android फ़ोन, जिनमें कुछ Galaxy A-series डिवाइस शामिल हैं, धीमे हो सकते हैं। पुराने डिवाइस अनुभव चला सकते हैं, लेकिन कैमरा मोड और वीडियो निर्यात से डिवाइस गर्म हो सकता है या फ़्रेमरेट घट सकता है।',
       },
     },
     id: {
@@ -2022,10 +2022,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash membutuhkan browser modern dengan WebGPU dan koneksi HTTPS aman.',
         recommendedName: 'Disarankan',
         recommendedDesc:
-          'Browser desktop modern, ponsel Android 2021 atau lebih baru dengan Chrome di Android 12+, iPhone SE 2022 / iPhone 13 atau lebih baru, atau iPad Pro 2018 atau lebih baru.',
+          'Browser desktop modern, Android flagship terbaru atau upper-midrange berfokus performa dengan Chrome di Android 12+, iPhone SE 2022 / iPhone 13 atau lebih baru, atau iPad Pro 2018 atau lebih baru.',
         olderDevicesName: 'Perangkat lama',
         olderDevicesDesc:
-          'Perangkat lama mungkin berjalan, tetapi mode kamera dan ekspor video bisa membuat perangkat panas atau menurunkan frame rate.',
+          'Ponsel Android budget/midrange, termasuk sebagian Galaxy A-series, mungkin lambat. Perangkat lama mungkin berjalan, tetapi mode kamera dan ekspor video bisa membuat perangkat panas atau menurunkan frame rate.',
       },
     },
     ar: {
@@ -2092,10 +2092,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'يتطلب Lorenz Clash متصفحًا حديثًا يدعم WebGPU واتصال HTTPS آمنًا.',
         recommendedName: 'موصى به',
         recommendedDesc:
-          'متصفح سطح مكتب حديث، هاتف Android من 2021 أو أحدث مع Chrome على Android 12+، iPhone SE 2022 / iPhone 13 أو أحدث، أو iPad Pro 2018 أو أحدث.',
+          'متصفح سطح مكتب حديث، هاتف Android رائد حديث أو فئة متوسطة عليا موجهة للأداء مع Chrome على Android 12+، iPhone SE 2022 / iPhone 13 أو أحدث، أو iPad Pro 2018 أو أحدث.',
         olderDevicesName: 'الأجهزة القديمة',
         olderDevicesDesc:
-          'قد تعمل الأجهزة القديمة، لكن وضع الكاميرا وتصدير الفيديو قد يرفعان حرارة الجهاز أو يخفضان معدل الإطارات.',
+          'هواتف Android الاقتصادية/المتوسطة، بما فيها بعض أجهزة Galaxy A، قد تكون بطيئة. قد تعمل الأجهزة القديمة، لكن وضع الكاميرا وتصدير الفيديو قد يرفعان حرارة الجهاز أو يخفضان معدل الإطارات.',
       },
     },
     ru: {
@@ -2162,10 +2162,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash требует современный браузер с WebGPU и безопасное HTTPS-соединение.',
         recommendedName: 'Рекомендуется',
         recommendedDesc:
-          'Современный desktop-браузер, Android-телефон 2021 года или новее с Chrome на Android 12+, iPhone SE 2022 / iPhone 13 или новее, либо iPad Pro 2018 или новее.',
+          'Современный desktop-браузер, свежий Android-флагман или производительный верхний средний класс с Chrome на Android 12+, iPhone SE 2022 / iPhone 13 или новее, либо iPad Pro 2018 или новее.',
         olderDevicesName: 'Старые устройства',
         olderDevicesDesc:
-          'Старые устройства могут работать, но камера и экспорт видео могут нагревать устройство или снижать frame rate.',
+          'Бюджетные и средние Android-телефоны, включая некоторые Galaxy A, могут работать медленно. Старые устройства могут работать, но камера и экспорт видео могут нагревать устройство или снижать frame rate.',
       },
     },
     it: {
@@ -2232,10 +2232,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash richiede un browser recente compatibile WebGPU e una connessione HTTPS sicura.',
         recommendedName: 'Consigliato',
         recommendedDesc:
-          'Browser desktop moderno, telefono Android recente dal 2021 con Chrome su Android 12+, iPhone SE 2022 / iPhone 13 o successivo, oppure iPad Pro 2018 o successivo.',
+          'Browser desktop moderno, Android flagship recente o upper-midrange orientato alle prestazioni con Chrome su Android 12+, iPhone SE 2022 / iPhone 13 o successivo, oppure iPad Pro 2018 o successivo.',
         olderDevicesName: 'Dispositivi vecchi',
         olderDevicesDesc:
-          'I dispositivi più vecchi possono funzionare, ma camera ed export video possono scaldare il dispositivo o ridurre il frame rate.',
+          'Gli Android economici/midrange, inclusi alcuni Galaxy A, possono essere lenti. I dispositivi più vecchi possono funzionare, ma camera ed export video possono scaldare il dispositivo o ridurre il frame rate.',
       },
     },
     tr: {
@@ -2302,10 +2302,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash için WebGPU destekli güncel bir tarayıcı ve güvenli HTTPS bağlantısı gerekir.',
         recommendedName: 'Önerilen',
         recommendedDesc:
-          'Modern desktop tarayıcı, Android 12+ Chrome kullanan 2021 veya sonrası Android telefon, iPhone SE 2022 / iPhone 13 veya sonrası, ya da iPad Pro 2018 veya sonrası.',
+          'Modern desktop tarayıcı, Android 12+ Chrome kullanan yeni Android amiral gemisi veya performans odaklı üst-orta segment telefon, iPhone SE 2022 / iPhone 13 veya sonrası, ya da iPad Pro 2018 veya sonrası.',
         olderDevicesName: 'Eski cihazlar',
         olderDevicesDesc:
-          'Eski cihazlar çalışabilir, ancak kamera modu ve video dışa aktarma cihazı ısıtabilir veya frame rate düşürebilir.',
+          'Bazı Galaxy A modelleri dahil bütçe/orta segment Android telefonlar yavaş olabilir. Eski cihazlar çalışabilir, ancak kamera modu ve video dışa aktarma cihazı ısıtabilir veya frame rate düşürebilir.',
       },
     },
     bn: {
@@ -2372,10 +2372,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         browserDesc: 'Lorenz Clash-এর জন্য WebGPU-সক্ষম নতুন ব্রাউজার এবং নিরাপদ HTTPS সংযোগ দরকার।',
         recommendedName: 'প্রস্তাবিত',
         recommendedDesc:
-          'আধুনিক ডেস্কটপ ব্রাউজার, ২০২১ বা পরের Android ফোন যেখানে Android 12+ Chrome আছে, iPhone SE 2022 / iPhone 13 বা নতুন, অথবা iPad Pro 2018 বা নতুন।',
+          'আধুনিক ডেস্কটপ ব্রাউজার, Android 12+ Chrome চালানো সাম্প্রতিক Android ফ্ল্যাগশিপ বা পারফরম্যান্স-কেন্দ্রিক upper-midrange ফোন, iPhone SE 2022 / iPhone 13 বা নতুন, অথবা iPad Pro 2018 বা নতুন।',
         olderDevicesName: 'পুরোনো ডিভাইস',
         olderDevicesDesc:
-          'পুরোনো ডিভাইসে চলতে পারে, কিন্তু ক্যামেরা মোড ও ভিডিও রপ্তানি ডিভাইস গরম করতে বা ফ্রেমরেট কমাতে পারে।',
+          'বাজেট/মিডরেঞ্জ Android ফোন, কিছু Galaxy A-series সহ, ধীর হতে পারে। পুরোনো ডিভাইসে চলতে পারে, কিন্তু ক্যামেরা মোড ও ভিডিও রপ্তানি ডিভাইস গরম করতে বা ফ্রেমরেট কমাতে পারে।',
       },
     },
   };
