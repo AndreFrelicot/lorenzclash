@@ -136,7 +136,9 @@ fn cover(uv: vec2<f32>, screenAspect: f32, imgAspect: f32) -> vec2<f32> {
 struct VSOut {
   @builtin(position) position: vec4<f32>,
   @location(0) uv: vec2<f32>,  // 0..1, y up
-  @location(1) ndc: vec2<f32>, // -1..1
+  // Unnormalized view ray. Affine in ndc → the rasterizer's linear interpolation
+  // reproduces it exactly; only the normalize stays per-fragment.
+  @location(1) ray: vec3<f32>,
 };
 
 @vertex
@@ -148,15 +150,13 @@ fn vs(@builtin(vertex_index) vi: u32) -> VSOut {
   var out: VSOut;
   out.position = vec4<f32>(pos, 0.0, 1.0);
   out.uv = vec2<f32>(x, y);
-  out.ndc = pos;
+  out.ray = bg.fwd + pos.x * bg.tanHalfFovY * bg.aspect * bg.right + pos.y * bg.tanHalfFovY * bg.up;
   return out;
 }
 
 @fragment
 fn fs(in: VSOut) -> @location(0) vec4<f32> {
-  let dir = normalize(
-    bg.fwd + in.ndc.x * bg.tanHalfFovY * bg.aspect * bg.right + in.ndc.y * bg.tanHalfFovY * bg.up,
-  );
+  let dir = normalize(in.ray);
 
   let sky = background_gradient(dir) + star_field(dir, bg.params.z, bg.params.w);
   var col = sky;

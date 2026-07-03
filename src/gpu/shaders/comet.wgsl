@@ -322,10 +322,12 @@ fn fs(in: VSOut) -> @location(0) vec4<f32> {
   let mode = comet.v3.z;
 
   // Textured by the ribbon frame of the slot it's crossing (or an age colour when the
-  // camera/synthetic source is off) — matches shapeMesh / particles.
-  let aged = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
-  let tex = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
-  var col = select(aged, tex, cam.params.w > 0.5);
+  // camera/synthetic source is off) — matches shapeMesh / particles. Branch on the
+  // uniform (not select()) so the aged mode skips the ring fetch entirely.
+  var col = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
+  if (cam.params.w > 0.5) {
+    col = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
+  }
 
   let l = normalize(vec3<f32>(0.4, 0.8, 0.5));
   let diff = max(dot(normalize(in.normal), l), 0.0) * 0.35 + 0.85;

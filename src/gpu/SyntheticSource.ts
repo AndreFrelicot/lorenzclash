@@ -84,6 +84,11 @@ export class SyntheticSource {
   private readonly splatView: GPUTextureView;
   private splatInit = false;
 
+  // Ink bind group cached on the deposits buffer's identity (it only changes on a
+  // Length-slider reallocation) — no per-frame bind-group creation.
+  private inkBindGroup: GPUBindGroup | null = null;
+  private inkBindBuffer: GPUBuffer | null = null;
+
   private readonly synthData = new Float32Array(12); // u0 + u1 + u2
   private readonly splatData = new Float32Array(8); // rot(4) + meta(4)
 
@@ -293,15 +298,20 @@ export class SyntheticSource {
     this.splatData[7] = SPLAT_INK; // info.w = inkIntensity
     this.device.queue.writeBuffer(this.splatUniform, 0, this.splatData);
 
-    // The deposits buffer can be reallocated (Length slider), so build the ink
-    // bind group each frame — cheap, matches FrameRingBuffer.capture().
-    const inkBindGroup = this.device.createBindGroup({
-      layout: this.inkPipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: { buffer: this.splatUniform } },
-        { binding: 1, resource: { buffer: depositsBuffer } },
-      ],
-    });
+    // The deposits buffer can be reallocated (Length slider) — cache the bind group
+    // on the buffer's identity and rebuild only when it changes (same pattern as
+    // FrameRingBuffer.captureFrom), instead of a new GPU object every frame.
+    if (this.inkBindGroup === null || this.inkBindBuffer !== depositsBuffer) {
+      this.inkBindGroup = this.device.createBindGroup({
+        layout: this.inkPipeline.getBindGroupLayout(0),
+        entries: [
+          { binding: 0, resource: { buffer: this.splatUniform } },
+          { binding: 1, resource: { buffer: depositsBuffer } },
+        ],
+      });
+      this.inkBindBuffer = depositsBuffer;
+    }
+    const inkBindGroup = this.inkBindGroup;
 
     const decay = p.decay;
     const pass = encoder.beginRenderPass({

@@ -207,15 +207,11 @@ fn fs(in: VSOut) -> @location(0) vec4<f32> {
   let cellId = floor(baseUv * cells);
   let blockUv = (cellId + vec2<f32>(0.5)) / cells;
 
-  // Cross-blend the two endpoint frames (block-sampled) → seamless liaison.
-  let fa = textureSampleLevel(ring, samp, blockUv, i32(in.layerA), 0.0).rgb;
-  let fb = textureSampleLevel(ring, samp, blockUv, i32(in.layerB), 0.0).rgb;
-  let frame = mix(fa, fb, in.blendT);
-  var color = select(aged, frame, cam.params.w > 0.5);
-
   // Each block shrinks from full (age 0.85) to nothing (age 1.0), with a bit of
   // randomised dispersion energy: it drifts (within its cell) and spins as it
   // goes. Gaps discard → the tail breaks into shrinking, tumbling particles.
+  // The discard depends only on uv/age, so it runs BEFORE the ring fetches —
+  // gap fragments in the dissolving tail skip both texture reads.
   let prog = smoothstep(0.85, 1.0, age);
   let rnd = hash22(cellId);
   let drift = (rnd - vec2<f32>(0.5)) * prog * 0.5;
@@ -227,6 +223,16 @@ fn fs(in: VSOut) -> @location(0) vec4<f32> {
   let half = 0.5 * (1.0 - prog);
   if (half <= 0.002 || any(abs(lc) > vec2<f32>(half))) {
     discard;
+  }
+
+  // Cross-blend the two endpoint frames (block-sampled) → seamless liaison.
+  // Branch on the uniform (not select()) so the aged/no-source mode skips the
+  // two array fetches entirely. textureSampleLevel = explicit LOD, safe here.
+  var color = aged;
+  if (cam.params.w > 0.5) {
+    let fa = textureSampleLevel(ring, samp, blockUv, i32(in.layerA), 0.0).rgb;
+    let fb = textureSampleLevel(ring, samp, blockUv, i32(in.layerB), 0.0).rgb;
+    color = mix(fa, fb, in.blendT);
   }
 
   // Audio palette tint on the band edges only (in.uv.x = across), from this point's

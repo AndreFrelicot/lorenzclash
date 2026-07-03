@@ -312,18 +312,41 @@ export function mountMinimalControls(
   refreshers.push(() => setFollow(currentFollowMode, true));
 
   // Recording feedback: a red ring sweeping around the Snapshot button (--rec 0..1).
+  // Called every frame while recording — quantize and skip unchanged writes so the
+  // per-frame cost is a comparison, not a style invalidation + string alloc.
   let snapRec = false;
+  let lastRec = -1;
   const setSnapshotProgress = (p: number): void => {
     if (p < 0) {
       if (!snapRec) return;
       snapRec = false;
+      lastRec = -1;
       snapshotBtn.classList.remove('is-recording');
       snapshotBtn.style.removeProperty('--rec');
     } else {
-      snapRec = true;
-      snapshotBtn.classList.add('is-recording');
-      snapshotBtn.style.setProperty('--rec', p.toFixed(3));
+      if (!snapRec) {
+        snapRec = true;
+        snapshotBtn.classList.add('is-recording');
+      }
+      const q = Math.round(p * 200) / 200; // 0.005 steps — invisible on the ring
+      if (q === lastRec) return;
+      lastRec = q;
+      snapshotBtn.style.setProperty('--rec', q.toFixed(3));
     }
+  };
+
+  // Auto-halo energy: called every frame while Auto is on. Track the on-state as a
+  // boolean (no classList read) and quantize + skip unchanged writes so the common
+  // frame costs a comparison instead of a CSS-var invalidation + string alloc.
+   
+  let autoIsOn = state.auto;
+  let lastEnergy = -1;
+  const setAutoEnergy = (level: number): void => {
+    if (!autoIsOn) return; // halo hidden while Auto is off
+    const q = Math.round(Math.max(0, Math.min(1, level)) * 100) / 100;
+    if (q === lastEnergy) return;
+    lastEnergy = q;
+    auto.el.style.setProperty('--energy', q.toFixed(2));
   };
 
   root.append(caption, bar);
@@ -355,13 +378,12 @@ export function mountMinimalControls(
     setShape,
     setAudio,
     setTrack,
-    setAuto: auto.setState,
-    setSnapshotProgress,
-    setAutoEnergy: (level: number): void => {
-      // Only while Auto is on (its halo is hidden otherwise) — drives the --energy pulse.
-      if (!auto.el.classList.contains('is-on')) return;
-      auto.el.style.setProperty('--energy', Math.max(0, Math.min(1, level)).toFixed(3));
+    setAuto: (on: boolean): void => {
+      autoIsOn = on;
+      auto.setState(on);
     },
+    setSnapshotProgress,
+    setAutoEnergy,
     announce,
     destroy: () => {
       ro.disconnect();

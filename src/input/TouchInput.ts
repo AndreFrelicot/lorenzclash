@@ -31,6 +31,8 @@ export class TouchInput {
   // Integrated, normalized tilt from the drag (read() accumulates + decays it).
   private tiltX = 0;
   private tiltY = 0;
+  // Reused result for read() — the caller consumes it immediately (no per-frame alloc).
+  private readonly tilt: MotionTilt = { tiltX: 0, tiltY: 0, twist: 0 };
 
   constructor(private readonly target: HTMLElement) {
     target.addEventListener('pointerdown', this.onDown);
@@ -83,27 +85,26 @@ export class TouchInput {
     return this.pull;
   }
 
-  // Pixel drag accumulated since the last call (then resets to zero).
-  consumeDelta(): { dx: number; dy: number } {
-    const d = { dx: this.dx, dy: this.dy };
-    this.dx = 0;
-    this.dy = 0;
-    return d;
-  }
-
   // Decaying, normalized tilt from the pointer-drag. Horizontal drag → tiltX,
   // vertical drag → tiltY (inverted: drag up tilts forward). While dragging the
   // tilt builds and holds; when released it eases back to 0. Called once per frame;
   // `gain` (tunable DragGain) scales pixels → tilt. twist is currently unused.
+  // Consumes the accumulated pixel drag (then resets it) and returns a reused
+  // object — valid until the next read().
   read(gain: number): MotionTilt {
-    const d = this.consumeDelta();
-    this.tiltX = clamp(this.tiltX + d.dx * gain, -1, 1);
-    this.tiltY = clamp(this.tiltY - d.dy * gain, -1, 1);
+    const dx = this.dx;
+    const dy = this.dy;
+    this.dx = 0;
+    this.dy = 0;
+    this.tiltX = clamp(this.tiltX + dx * gain, -1, 1);
+    this.tiltY = clamp(this.tiltY - dy * gain, -1, 1);
     if (!this.dragging) {
       this.tiltX *= DECAY;
       this.tiltY *= DECAY;
     }
-    return { tiltX: this.tiltX, tiltY: this.tiltY, twist: 0 };
+    this.tilt.tiltX = this.tiltX;
+    this.tilt.tiltY = this.tiltY;
+    return this.tilt;
   }
 
   destroy(): void {

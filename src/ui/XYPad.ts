@@ -41,6 +41,7 @@ export class XYPad {
     this.root.addEventListener('pointermove', this.onMove);
     this.root.addEventListener('pointerup', this.onUp);
     this.root.addEventListener('pointercancel', this.onUp);
+    window.addEventListener('resize', this.invalidateRect);
 
     this.layoutKnob();
   }
@@ -69,8 +70,17 @@ export class XYPad {
     this.root.removeEventListener('pointermove', this.onMove);
     this.root.removeEventListener('pointerup', this.onUp);
     this.root.removeEventListener('pointercancel', this.onUp);
+    window.removeEventListener('resize', this.invalidateRect);
     this.root.remove();
   }
+
+  // Pad rect cached for the drag (getBoundingClientRect on every pointermove
+  // forces layout). Invalidated on resize/orientation change so a layout shift
+  // mid-drag falls back to a fresh read, like the old per-move behavior.
+  private rect: DOMRect | null = null;
+  private readonly invalidateRect = (): void => {
+    this.rect = null;
+  };
 
   private readonly onDown = (e: PointerEvent): void => {
     const now = performance.now();
@@ -82,6 +92,7 @@ export class XYPad {
     }
     this.lastTapTime = now;
     this.dragging = true;
+    this.rect = this.root.getBoundingClientRect();
     this.root.setPointerCapture(e.pointerId);
     this.setFromPointer(e);
   };
@@ -105,7 +116,7 @@ export class XYPad {
   };
 
   private setFromPointer(e: PointerEvent): void {
-    const rect = this.root.getBoundingClientRect();
+    const rect = this.rect ?? this.root.getBoundingClientRect();
     this.xv = clamp((e.clientX - rect.left) / Math.max(rect.width, 1), 0, 1);
     this.yv = clamp((e.clientY - rect.top) / Math.max(rect.height, 1), 0, 1);
     this.layoutKnob();

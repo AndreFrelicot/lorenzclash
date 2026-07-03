@@ -47,6 +47,7 @@ export class MarginFader {
     this.track.addEventListener('pointermove', this.onMove);
     this.track.addEventListener('pointerup', this.onUp);
     this.track.addEventListener('pointercancel', this.onUp);
+    window.addEventListener('resize', this.invalidateRect);
   }
 
   destroy(): void {
@@ -54,11 +55,21 @@ export class MarginFader {
     this.track.removeEventListener('pointermove', this.onMove);
     this.track.removeEventListener('pointerup', this.onUp);
     this.track.removeEventListener('pointercancel', this.onUp);
+    window.removeEventListener('resize', this.invalidateRect);
     this.root.remove();
   }
 
+  // Track rect cached for the drag (getBoundingClientRect on every pointermove
+  // forces layout). Invalidated on resize/orientation change so a layout shift
+  // mid-drag falls back to a fresh read, like the old per-move behavior.
+  private rect: DOMRect | null = null;
+  private readonly invalidateRect = (): void => {
+    this.rect = null;
+  };
+
   private readonly onDown = (e: PointerEvent): void => {
     this.dragging = true;
+    this.rect = this.track.getBoundingClientRect();
     this.track.setPointerCapture(e.pointerId);
     this.onGrab?.();
     this.setFromPointer(e);
@@ -77,7 +88,7 @@ export class MarginFader {
 
   // Pointer Y within the track → fraction 0 (top = max/loose) .. 1 (bottom = min/tight).
   private setFromPointer(e: PointerEvent): void {
-    const rect = this.track.getBoundingClientRect();
+    const rect = this.rect ?? this.track.getBoundingClientRect();
     const fraction = clamp((e.clientY - rect.top) / Math.max(rect.height, 1), 0, 1);
     this.value = this.max - fraction * (this.max - this.min);
     this.layoutKnob();

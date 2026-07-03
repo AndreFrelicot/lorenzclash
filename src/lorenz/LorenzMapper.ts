@@ -60,6 +60,11 @@ export class LorenzMapper {
   readonly depositedSlots = new Int32Array(MAX_DEPOSITS_PER_FRAME);
   depositedCount = 0;
 
+  // Bumped on every instanceData mutation (deposit, key-frame mark, capacity
+  // change). The renderer compares it to its last-uploaded value to skip the
+  // full-array GPU upload on the many frames where nothing was deposited.
+  gpuGeneration = 1;
+
   // Current audio snapshot (centroid, beat, bass, treble), set by App each frame
   // before update(). Baked into every deposit at birth → frozen per-point.
   readonly audioSnap = new Float32Array(4);
@@ -130,6 +135,7 @@ export class LorenzMapper {
     this.depositSeq = 0;
     this.sinceDist = 0;
     this.hasPrev = false; // re-seed prevWorld from the current point next update
+    this.gpuGeneration++;
   }
 
   // Live-update the attractor parameters (e.g. audio-driven — see App). Only new
@@ -159,6 +165,7 @@ export class LorenzMapper {
     if (this.count === 0) return;
     const idx = (this.head - 1 + this.capacity) % this.capacity;
     this.instanceData[idx * INSTANCE_FLOATS + 7] = 1;
+    this.gpuGeneration++;
   }
 
   update(dt: number): void {
@@ -174,7 +181,7 @@ export class LorenzMapper {
     while (remaining > 1e-9) {
       const h = Math.min(remaining, RAW_SUBSTEP);
       if (this.straight) this.straightStep(h);
-      else this.p = rk4(this.p, h, this.params);
+      else rk4InPlace(this.p, h, this.params);
       remaining -= h;
     }
 
@@ -257,6 +264,7 @@ export class LorenzMapper {
     this.head = (this.head + 1) % this.capacity;
     if (this.count < this.capacity) this.count++;
     this.depositSeq++;
+    this.gpuGeneration++;
   }
 
   // One substep of the debug straight beam (arc length h, raw space). The heading
@@ -291,36 +299,51 @@ export class LorenzMapper {
   }
 }
 
-function lorenz(p: Vec3, params: LorenzParams): Vec3 {
-  const [x, y, z] = p;
-  return [params.sigma * (y - x), x * (params.rho - z) - y, x * y - params.beta * z];
+// Unit-magnitude Lorenz direction (so RK4 advances by arc length — constant
+// speed; near-stationary points keep their tiny velocity to avoid blow-up),
+// written into the module scratch below. Scalar form of the old lorenz()/field()
+// helpers with the SAME operations in the SAME order — the trajectory is
+// bit-identical — but the ~4 evaluations/substep now allocate nothing.
+let fieldX = 0;
+let fieldY = 0;
+let fieldZ = 0;
+function fieldInto(x: number, y: number, z: number, params: LorenzParams): void {
+  const vx = params.sigma * (y - x);
+  const vy = x * (params.rho - z) - y;
+  const vz = x * y - params.beta * z;
+  const len = Math.hypot(vx, vy, vz);
+  if (len < FIELD_EPS) {
+    fieldX = vx;
+    fieldY = vy;
+    fieldZ = vz;
+    return;
+  }
+  fieldX = vx / len;
+  fieldY = vy / len;
+  fieldZ = vz / len;
 }
 
-// Unit-magnitude Lorenz direction, so RK4 advances by arc length (constant
-// speed). Near-stationary points keep their tiny velocity to avoid blow-up.
-function field(p: Vec3, params: LorenzParams): Vec3 {
-  const v = lorenz(p, params);
-  const len = Math.hypot(v[0], v[1], v[2]);
-  if (len < FIELD_EPS) return v;
-  return [v[0] / len, v[1] / len, v[2] / len];
-}
-
-function rk4(p: Vec3, h: number, params: LorenzParams): Vec3 {
-  const k1 = field(p, params);
-  const k2 = field(add(p, scale(k1, h / 2)), params);
-  const k3 = field(add(p, scale(k2, h / 2)), params);
-  const k4 = field(add(p, scale(k3, h)), params);
-  return [
-    p[0] + (h / 6) * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]),
-    p[1] + (h / 6) * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1]),
-    p[2] + (h / 6) * (k1[2] + 2 * k2[2] + 2 * k3[2] + k4[2]),
-  ];
-}
-
-function add(a: Vec3, b: Vec3): Vec3 {
-  return [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
-}
-
-function scale(a: Vec3, s: number): Vec3 {
-  return [a[0] * s, a[1] * s, a[2] * s];
+// Classic RK4 step, advancing `p` in place (no per-substep array allocations).
+function rk4InPlace(p: Vec3, h: number, params: LorenzParams): void {
+  const x = p[0];
+  const y = p[1];
+  const z = p[2];
+  const hh = h / 2;
+  fieldInto(x, y, z, params);
+  const k1x = fieldX;
+  const k1y = fieldY;
+  const k1z = fieldZ;
+  fieldInto(x + k1x * hh, y + k1y * hh, z + k1z * hh, params);
+  const k2x = fieldX;
+  const k2y = fieldY;
+  const k2z = fieldZ;
+  fieldInto(x + k2x * hh, y + k2y * hh, z + k2z * hh, params);
+  const k3x = fieldX;
+  const k3y = fieldY;
+  const k3z = fieldZ;
+  fieldInto(x + k3x * h, y + k3y * h, z + k3z * h, params);
+  const s = h / 6;
+  p[0] = x + s * (k1x + 2 * k2x + 2 * k3x + fieldX);
+  p[1] = y + s * (k1y + 2 * k2y + 2 * k3y + fieldY);
+  p[2] = z + s * (k1z + 2 * k2z + 2 * k3z + fieldZ);
 }

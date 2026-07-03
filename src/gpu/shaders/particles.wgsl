@@ -115,6 +115,15 @@ fn vs(
   let depositRate = max(cam.misc.w, 0.001);
   let tSince = max(age - pp.start, 0.0) * cam.ribbon.y / depositRate;
   let prog = clamp(tSince / PARTICLE_LIFETIME, 0.0, 1.0);
+
+  // Not yet dissolving (scale 0 via the smoothstep below) or fully dissolved
+  // ((1-prog) = 0): the mesh would be zero-area anyway — cull before paying the
+  // hash/normalize/tumble work (same pattern as comet.wgsl). z > w clips it all.
+  if (age <= pp.start || prog >= 1.0) {
+    var culled: VSOut;
+    culled.position = vec4<f32>(0.0, 0.0, 2.0, 1.0);
+    return culled;
+  }
   let pop = audioPop(snap); // frozen at this point's birth
   let scale = pp.size * smoothstep(pp.start, pp.start + 0.05, age) * (1.0 - prog) * (1.0 + pop);
 
@@ -150,9 +159,12 @@ fn vs(
 
 @fragment
 fn fs(in: VSOut) -> @location(0) vec4<f32> {
-  let aged = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
-  let tex = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
-  var col = select(aged, tex, cam.params.w > 0.5);
+  // select() would fetch the ring even when the aged colour wins — branch on the
+  // uniform instead (coherent, no divergence) so the fetch is skipped entirely.
+  var col = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
+  if (cam.params.w > 0.5) {
+    col = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
+  }
 
   let l = normalize(vec3<f32>(0.4, 0.8, 0.5));
   let diff = max(dot(normalize(in.normal), l), 0.0) * 0.35 + 0.85;

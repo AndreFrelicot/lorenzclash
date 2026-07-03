@@ -178,9 +178,12 @@ fn vs(
 
 @fragment
 fn fs(in: VSOut) -> @location(0) vec4<f32> {
-  let aged = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
-  let tex = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
-  var col = select(aged, tex, cam.params.w > 0.5);
+  // Branch on the uniform (not select()) so the aged/no-source mode skips the
+  // ring fetch entirely — select() evaluates both sides.
+  var col = mix(vec3<f32>(1.0, 0.55, 0.2), vec3<f32>(0.25, 0.5, 1.0), in.age) * cam.curve.yzw;
+  if (cam.params.w > 0.5) {
+    col = textureSampleLevel(ring, samp, in.uv, i32(in.layer), 0.0).rgb;
+  }
 
   // Directional shading kept bright (high ambient) so shapes aren't dull vs the
   // unlit plane — they should still catch the camera texture's full luminosity.

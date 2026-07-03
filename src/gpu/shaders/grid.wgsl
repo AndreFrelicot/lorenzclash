@@ -87,16 +87,22 @@ fn vs(@location(0) p: vec3<f32>) -> VSOut {
   world.y = world.y + n * noiseAmp * amp;
 
   // Optional rainbow burst: several accelerating radial wave fronts that rise in
-  // emission, then fall back to the normal blue grid.
+  // emission, then fall back to the normal blue grid. Idle (amount 0 or phase
+  // done) every term below is multiplied to 0 anyway — skip the pow/sin work.
   let radial = length(p.xz) / 2.4;
-  let accel = phase * phase * (1.0 + phase * 2.2) * rainbowSpeed;
-  let crestPhase = radial * waves - accel * (waves + 1.5) + seed;
-  let crest = pow(0.5 + 0.5 * sin(crestPhase * 6.2831853), sharpness);
-  let rise = smoothstep(0.0, 0.82, phase);
-  let fall = 1.0 - smoothstep(0.82, 1.0, phase);
-  let envelope = rise * fall * rainbowAmount;
-  let rainbowWave = crest * envelope;
-  world.y = world.y + rainbowWave * rainbowHeight * (0.45 + phase * 0.55);
+  var crest = 0.0;
+  var envelope = 0.0;
+  var rainbowWave = 0.0;
+  if (rainbowAmount > 0.0 && phase < 1.0) {
+    let accel = phase * phase * (1.0 + phase * 2.2) * rainbowSpeed;
+    let crestPhase = radial * waves - accel * (waves + 1.5) + seed;
+    crest = pow(0.5 + 0.5 * sin(crestPhase * 6.2831853), sharpness);
+    let rise = smoothstep(0.0, 0.82, phase);
+    let fall = 1.0 - smoothstep(0.82, 1.0, phase);
+    envelope = rise * fall * rainbowAmount;
+    rainbowWave = crest * envelope;
+    world.y = world.y + rainbowWave * rainbowHeight * (0.45 + phase * 0.55);
+  }
 
   // Gesture: lean the sheet like a tray (push), strongest at the edges.
   world.y = world.y + (g.field.x * p.x + g.field.y * p.z);
@@ -113,8 +119,12 @@ fn vs(@location(0) p: vec3<f32>) -> VSOut {
   // Brighter where the field is doing something (deformed or gesture-active).
   let baseGlow = abs(n) * amp + abs(g.field.x) + abs(g.field.y) + abs(g.field.z);
   out.glow = baseGlow + rainbowWave * (2.2 + phase * 4.5);
-  let rainbowColor = hue_rgb(radial * 0.55 - phase * hueSpeed + seed + crest * 0.08);
-  out.color = mix(g.color.rgb, rainbowColor, clamp(envelope * 0.85 + crest * envelope, 0.0, 1.0));
+  // envelope = 0 ⇒ the mix weight is 0 and the base colour wins — skip hue_rgb.
+  out.color = g.color.rgb;
+  if (envelope > 0.0) {
+    let rainbowColor = hue_rgb(radial * 0.55 - phase * hueSpeed + seed + crest * 0.08);
+    out.color = mix(g.color.rgb, rainbowColor, clamp(envelope * 0.85 + crest * envelope, 0.0, 1.0));
+  }
   return out;
 }
 

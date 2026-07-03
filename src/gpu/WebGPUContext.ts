@@ -18,28 +18,14 @@ import blitShader from './shaders/blit.wgsl?raw';
 import debugGridShader from './shaders/debugGrid.wgsl?raw';
 import maskViewShader from './shaders/maskView.wgsl?raw';
 import { createModule } from './shaderModule.ts';
-import {
-  createCube,
-  createSphere,
-  createGrid,
-  type Mesh,
-} from '../shared/geometry.ts';
+import { createCube, createSphere, createGrid, type Mesh } from '../shared/geometry.ts';
 import { FrameRingBuffer } from './FrameRingBuffer.ts';
 import { SyntheticSource } from './SyntheticSource.ts';
 import { SweepGlow } from '../effects/SweepGlow.ts';
 import { Comet, COMET_MARGIN } from '../effects/Comet.ts';
 import { INSTANCE_FLOATS } from '../lorenz/LorenzMapper.ts';
 import { generateLorenzFields } from '../lorenz/LorenzField.ts';
-import {
-  type Mat4,
-  type Vec3,
-  perspectiveZO,
-  lookAt,
-  multiply,
-  subtract,
-  cross,
-  normalize,
-} from '../shared/math.ts';
+import { type Mat4, type Vec3, perspectiveZO, lookAt, multiply } from '../shared/math.ts';
 
 // viewProj(16) + right(4) + up(4) + params(4) + ribbon(4) + curve(4) + misc(4)
 // + audio0(4) + audio1(4) + tint0(4) + tint1(4) + tint2(4) + key(4) + sweep(4)
@@ -189,6 +175,8 @@ const ORBIT_RADIUS = 3.2;
 const ORBIT_HEIGHT = 1.4;
 const ORBIT_SPEED = 0.2;
 const FOV_Y = (50 * Math.PI) / 180;
+// Shared look-at up vector (read-only — lookAt never mutates it).
+const WORLD_UP: Vec3 = [0, 1, 0];
 
 // Follow mode: ride just behind the newest deposit, looking ahead along the curve.
 const FOLLOW_BACK = 0.6;
@@ -677,7 +665,8 @@ export class WebGPUContext {
   private exposureTrailManualPhase: number | null = null;
   private canvasFormat!: GPUTextureFormat;
   private brightPipeline!: GPURenderPipeline;
-  private blurPipeline!: GPURenderPipeline;
+  private blurHPipeline!: GPURenderPipeline;
+  private blurVPipeline!: GPURenderPipeline;
   private compositePipeline!: GPURenderPipeline;
   private bloomUniform!: GPUBuffer;
   private readonly bloomData = new Float32Array(BLOOM_FLOATS); // params + slow ripple + event ripple
@@ -778,6 +767,25 @@ export class WebGPUContext {
   private readonly camRight: Vec3 = [1, 0, 0];
   private readonly camUp: Vec3 = [0, 1, 0];
   private readonly camForward: Vec3 = [0, 0, 1];
+  // Reused modulation scratch for the synthetic source (no per-frame allocation).
+  private readonly synthMods = {
+    px: 0,
+    py: 0,
+    pz: 0,
+    audio: false,
+    bass: 0,
+    treble: 0,
+    centroid: 0,
+    beat: 0,
+    level: 0,
+  };
+
+  // Last-uploaded deposit generations (see LorenzMapper.gpuGeneration): the full
+  // instanceData array is only re-uploaded when a deposit/key-frame actually
+  // changed it. -1 = never uploaded / unknown → always upload.
+  private uploadedGen1 = -1;
+  private uploadedGen2 = -1;
+
   // HD pool slot to capture into next frame (-1 = none), set via captureStillInto.
   private pendingStillCapture = -1;
   // Which source feeds that pending still: the synthetic source (true) or the camera
@@ -1007,6 +1015,7 @@ export class WebGPUContext {
     this.ring.setCapacity(capacity);
     this.rebuildCameraBindGroups();
     this.inkBindGroup = this.buildInkBindGroup();
+    this.uploadedGen1 = -1; // fresh (zeroed) buffer → force the next deposits upload
   }
 
   static async create(
@@ -1440,10 +1449,26 @@ export class WebGPUContext {
       },
       primitive: { topology: 'triangle-list' },
     });
-    const blurPipeline = device.createRenderPipeline({
+    // Separable blur: H then V = exactly one 5×5 box (the old blur_fs); the chain
+    // runs the pair twice for the same softness at 20 taps/pixel instead of 50.
+    const blurHPipeline = device.createRenderPipeline({
       layout: 'auto',
       vertex: { module: bloomModule, entryPoint: 'vs' },
-      fragment: { module: bloomModule, entryPoint: 'blur_fs', targets: [{ format: BLOOM_FORMAT }] },
+      fragment: {
+        module: bloomModule,
+        entryPoint: 'blur_h_fs',
+        targets: [{ format: BLOOM_FORMAT }],
+      },
+      primitive: { topology: 'triangle-list' },
+    });
+    const blurVPipeline = device.createRenderPipeline({
+      layout: 'auto',
+      vertex: { module: bloomModule, entryPoint: 'vs' },
+      fragment: {
+        module: bloomModule,
+        entryPoint: 'blur_v_fs',
+        targets: [{ format: BLOOM_FORMAT }],
+      },
       primitive: { topology: 'triangle-list' },
     });
     const compositePipeline = device.createRenderPipeline({
@@ -1572,7 +1597,8 @@ export class WebGPUContext {
     instance.headParamsBuffer = headParamsBuffer;
     instance.canvasFormat = format;
     instance.brightPipeline = brightPipeline;
-    instance.blurPipeline = blurPipeline;
+    instance.blurHPipeline = blurHPipeline;
+    instance.blurVPipeline = blurVPipeline;
     instance.compositePipeline = compositePipeline;
     instance.temporalPipeline = temporalPipeline;
     instance.blitPipeline = blitPipeline;
@@ -1723,7 +1749,10 @@ export class WebGPUContext {
       return;
     }
     if (dt <= 0 || this.exposureTrailElapsed >= this.exposureTrailDuration) return;
-    this.exposureTrailElapsed = Math.min(this.exposureTrailDuration, this.exposureTrailElapsed + dt);
+    this.exposureTrailElapsed = Math.min(
+      this.exposureTrailDuration,
+      this.exposureTrailElapsed + dt,
+    );
     if (this.exposureTrailElapsed >= this.exposureTrailDuration) this.destroyTemporalTargets();
   }
 
@@ -1808,6 +1837,21 @@ export class WebGPUContext {
     d[18] = 0;
     d[19] = 0;
     this.device.queue.writeBuffer(this.cometUniforms[idx], 0, d);
+  }
+
+  // Chronological wake window for an active comet, as a [first, end) deposit-index
+  // range. The shader culls a wake instance unless 0 <= front - age < lifeAge, and
+  // age is linear in the chronological index (birthSeq is sequential): age =
+  // (count - i) / capacity. Bounding the instanced draw to that window (± a safety
+  // pad; the shader still culls per-instance, so a generous range is pixel-exact)
+  // skips the ~80% of instances that are outside it.
+  private wakeDepositRange(front: number, count: number, capacity: number): [number, number] {
+    const p = this.cometParams;
+    const lifeAge = (PARTICLE_LIFETIME * (1 + 2 * COMET_MARGIN)) / Math.max(p.duration, 0.1);
+    const pad = 2;
+    const first = Math.max(0, Math.floor(count - front * capacity) - pad);
+    const end = Math.min(count, Math.ceil(count - (front - lifeAge) * capacity) + pad);
+    return [first, end];
   }
 
   get hdPoolSize(): number {
@@ -1902,9 +1946,11 @@ export class WebGPUContext {
       depositRate: number;
       depositedSlots: Int32Array; // B's ring2 slots written this frame
       depositedCount: number;
+      generation?: number; // LorenzMapper.gpuGeneration — skips unchanged uploads
     } | null,
     useSynthetic: boolean, // camera off → feed ring/HD from the procedural source
     splitSource = false, // camera on → curve A from the camera, curve B from the synth
+    curve1Generation = -1, // LorenzMapper.gpuGeneration — skips unchanged uploads (-1 = always)
   ): void {
     if (this.destroyed) return;
     if (this.canvas.width === 0 || this.canvas.height === 0) {
@@ -1988,7 +2034,12 @@ export class WebGPUContext {
     this.cameraData[63] = this.keyParams.tint; // key.w = tint strength
     this.writeSweepUniform(this.sweepA); // curve A's traveling glow (sweep lane)
     this.device.queue.writeBuffer(this.cameraBuffer, 0, this.cameraData);
-    this.device.queue.writeBuffer(this.depositsBuffer, 0, instanceData);
+    // Deposits only change on a deposit / key-frame mark (tracked by the mapper's
+    // generation counter) — skip the full-array re-upload on unchanged frames.
+    if (curve1Generation < 0 || curve1Generation !== this.uploadedGen1) {
+      this.device.queue.writeBuffer(this.depositsBuffer, 0, instanceData);
+      this.uploadedGen1 = curve1Generation;
+    }
 
     // Second crossing curve: reuse the shared camera basis, override the per-curve
     // fields (rotation, tint, age ref, ribbon slots, no camera), into its own buffer.
@@ -2009,7 +2060,11 @@ export class WebGPUContext {
       this.cameraData[39] = curve2.depositRate; // misc.w = curve 2 deposit rate
       this.writeSweepUniform(this.sweepB); // curve B's own (desynced) traveling glow
       this.device.queue.writeBuffer(this.cameraBuffer2, 0, this.cameraData);
-      this.device.queue.writeBuffer(this.depositsBuffer2, 0, curve2.instanceData);
+      const gen2 = curve2.generation ?? -1;
+      if (gen2 < 0 || gen2 !== this.uploadedGen2) {
+        this.device.queue.writeBuffer(this.depositsBuffer2, 0, curve2.instanceData);
+        this.uploadedGen2 = gen2;
+      }
     }
 
     // Background uniform: camera basis for the star view-ray + dissolve state.
@@ -2213,17 +2268,16 @@ export class WebGPUContext {
         pz = Math.max(-1, Math.min(1, instanceData[li + 2] * inv));
       }
       const as = this.audioState;
-      const mods = {
-        px,
-        py,
-        pz,
-        audio: this.audioParams.enabled,
-        bass: as.bass,
-        treble: as.treble,
-        centroid: as.centroid,
-        beat: as.beat,
-        level: as.level,
-      };
+      const mods = this.synthMods; // reused scratch — no per-frame allocation
+      mods.px = px;
+      mods.py = py;
+      mods.pz = pz;
+      mods.audio = this.audioParams.enabled;
+      mods.bass = as.bass;
+      mods.treble = as.treble;
+      mods.centroid = as.centroid;
+      mods.beat = as.beat;
+      mods.level = as.level;
       // Advance the live Lorenz splat trail every frame (else it freezes between
       // deposits); the colorise + blit below stays on-demand.
       this.synth.updateSplat(
@@ -2409,12 +2463,18 @@ export class WebGPUContext {
     // instance each, mode 0) then the wake (cubes, deposits×particles, mode 1). Each
     // draw reads its own uniform (written just above) so payloads don't clobber each
     // other before the single submit.
-    if (this.cometParams.enabled) {
+    // Idle comets (the 6-18 s random gap between passes) previously still submitted
+    // every draw — ~200k verts/frame of vertex work the shader clipped away plus 8
+    // uniform writes. The shader draws nothing when inactive, so skipping the draws
+    // entirely is pixel-identical.
+    const cometActiveA = this.cometParams.enabled && this.cometA.active && count > 1;
+    const cometActiveB = this.cometParams.enabled && this.cometB.active && segmentCount2 > 0;
+    if (cometActiveA || cometActiveB) {
       const wp = Math.max(0, Math.round(this.cometParams.wake)); // wake particles / deposit
       const sA = this.cometScrollA;
       const sB = this.cometScrollB;
       pass.setPipeline(this.cometPipeline);
-      if (count > 1) {
+      if (cometActiveA) {
         this.writeCometUniform(0, this.cometA, 0, count, 0, 0, time, sA);
         pass.setVertexBuffer(0, this.cubeBuffer);
         pass.setBindGroup(0, this.cometBindGroups[0]);
@@ -2423,18 +2483,20 @@ export class WebGPUContext {
         pass.setVertexBuffer(0, this.sphereBuffer);
         pass.setBindGroup(0, this.cometBindGroups[1]);
         pass.draw(this.sphereVertexCount, 1);
-        if (wp > 0) {
+        const [wFirst, wEnd] = this.wakeDepositRange(this.cometA.front, count, this.capacity);
+        if (wp > 0 && wEnd > wFirst) {
           // Wake behind each body: cube body (phase 0) and sphere body (phase π).
+          // Instances bounded to the live window (the shader still culls exactly).
           pass.setVertexBuffer(0, this.cubeBuffer);
           this.writeCometUniform(2, this.cometA, 0, count, 1, 0, time, sA);
           pass.setBindGroup(0, this.cometBindGroups[2]);
-          pass.draw(this.cubeVertexCount, count * wp);
+          pass.draw(this.cubeVertexCount, (wEnd - wFirst) * wp, 0, wFirst * wp);
           this.writeCometUniform(3, this.cometA, 0, count, 1, Math.PI, time, sA);
           pass.setBindGroup(0, this.cometBindGroups[3]);
-          pass.draw(this.cubeVertexCount, count * wp);
+          pass.draw(this.cubeVertexCount, (wEnd - wFirst) * wp, 0, wFirst * wp);
         }
       }
-      if (segmentCount2 > 0) {
+      if (cometActiveB) {
         const rot = this.curve2Params.angle;
         const c2 = curve2!.count;
         this.writeCometUniform(4, this.cometB, rot, c2, 0, 0, time, sB);
@@ -2445,14 +2507,15 @@ export class WebGPUContext {
         pass.setVertexBuffer(0, this.sphereBuffer);
         pass.setBindGroup(0, this.cometBindGroups[5]);
         pass.draw(this.sphereVertexCount, 1);
-        if (wp > 0) {
+        const [wFirst2, wEnd2] = this.wakeDepositRange(this.cometB.front, c2, CURVE2_CAPACITY);
+        if (wp > 0 && wEnd2 > wFirst2) {
           pass.setVertexBuffer(0, this.cubeBuffer);
           this.writeCometUniform(6, this.cometB, rot, c2, 1, 0, time, sB);
           pass.setBindGroup(0, this.cometBindGroups[6]);
-          pass.draw(this.cubeVertexCount, c2 * wp);
+          pass.draw(this.cubeVertexCount, (wEnd2 - wFirst2) * wp, 0, wFirst2 * wp);
           this.writeCometUniform(7, this.cometB, rot, c2, 1, Math.PI, time, sB);
           pass.setBindGroup(0, this.cometBindGroups[7]);
-          pass.draw(this.cubeVertexCount, c2 * wp);
+          pass.draw(this.cubeVertexCount, (wEnd2 - wFirst2) * wp, 0, wFirst2 * wp);
         }
       }
     }
@@ -2511,7 +2574,8 @@ export class WebGPUContext {
       this.bloomData[3] = 1 / Math.max(this.bloomH, 1);
       // Slow-mo ripple (composite): amplitude fades in with slow-mo (+ a beat kick);
       // phase = the warp-scaled scene time, so it slows with the music and recovers.
-      const rippleBase = this.slowmoAmount * (0.012 + this.audioState.beat * 0.01) * this.pixelRippleParams.slowmo;
+      const rippleBase =
+        this.slowmoAmount * (0.012 + this.audioState.beat * 0.01) * this.pixelRippleParams.slowmo;
       this.bloomData[4] = this.debugRipple ? Math.max(rippleBase, this.debugRippleAmp) : rippleBase;
       this.bloomData[5] = time;
       this.bloomData[6] = 16;
@@ -2811,41 +2875,60 @@ export class WebGPUContext {
     const aspect = this.canvas.width / this.canvas.height;
     const eye = this.eye;
     const center = this.center;
-    const worldUp: Vec3 = [0, 1, 0];
 
-    lookAt(this.view, eye, center, worldUp);
+    lookAt(this.view, eye, center, WORLD_UP);
     // Small near plane so cards close to the camera in follow mode aren't clipped.
     // FOV_Y / zoom narrows the field of view to zoom in (telephoto).
     perspectiveZO(this.proj, FOV_Y / this.zoom, aspect, 0.02, 100);
     multiply(this.viewProj, this.proj, this.view);
 
-    // Camera basis in world space, for billboarding.
-    const forward = normalize(subtract(center, eye));
-    const right = normalize(cross(forward, worldUp));
+    // Camera basis in world space, for billboarding. Scalar form of
+    // normalize(subtract(center, eye)) / cross(·, worldUp) / cross(right, forward)
+    // with worldUp = (0,1,0) folded in — same operations, no per-frame arrays.
+    let fx = center[0] - eye[0];
+    let fy = center[1] - eye[1];
+    let fz = center[2] - eye[2];
+    let len = Math.hypot(fx, fy, fz) || 1;
+    fx /= len;
+    fy /= len;
+    fz /= len;
+    // right = normalize(cross(forward, (0,1,0))) = normalize((-fz, 0, fx))
+    let rx = -fz;
+    let rz = fx;
+    len = Math.hypot(rx, 0, rz) || 1;
+    rx /= len;
+    rz /= len;
+    // up = normalize(cross(right, forward)); right.y = 0 exactly.
     // right ⊥ forward and both unit, so up is already unit; normalize anyway as
     // cheap insurance against accumulated FP error.
-    const up = normalize(cross(right, forward));
+    let ux = -(rz * fy);
+    let uy = rz * fx - rx * fz;
+    let uz = rx * fy;
+    len = Math.hypot(ux, uy, uz) || 1;
+    ux /= len;
+    uy /= len;
+    uz /= len;
 
     const d = this.cameraData;
     d.set(this.viewProj, 0);
-    d[16] = right[0];
-    d[17] = right[1];
-    d[18] = right[2];
-    d[20] = up[0];
-    d[21] = up[1];
-    d[22] = up[2];
+    d[16] = rx;
+    d[17] = 0;
+    d[18] = rz;
+    d[20] = ux;
+    d[21] = uy;
+    d[22] = uz;
     // params (24-26) + ribbon (28-29) are written by renderFrame.
 
     // Cache the basis for the background's star view-ray reconstruction.
-    this.camForward[0] = forward[0];
-    this.camForward[1] = forward[1];
-    this.camForward[2] = forward[2];
-    this.camRight[0] = right[0];
-    this.camRight[1] = right[1];
-    this.camRight[2] = right[2];
-    this.camUp[0] = up[0];
-    this.camUp[1] = up[1];
-    this.camUp[2] = up[2];
+    this.camForward[0] = fx;
+    this.camForward[1] = fy;
+    this.camForward[2] = fz;
+    this.camRight[0] = rx;
+    this.camRight[1] = 0;
+    this.camRight[2] = rz;
+    this.camUp[0] = ux;
+    this.camUp[1] = uy;
+    this.camUp[2] = uz;
   }
 
   // (Re)create the depth texture to match the current canvas size.
@@ -2913,8 +2996,10 @@ export class WebGPUContext {
         { binding: 2, resource: { buffer: this.bloomUniform } },
       ],
     });
+    // H always reads bloomA (writes B), V always reads bloomB (writes A) — so each
+    // bind group is built against its own pipeline's (auto) layout.
     this.blurBindA = this.device.createBindGroup({
-      layout: this.blurPipeline.getBindGroupLayout(0),
+      layout: this.blurHPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: samp },
         { binding: 1, resource: this.bloomAView! },
@@ -2922,7 +3007,7 @@ export class WebGPUContext {
       ],
     });
     this.blurBindB = this.device.createBindGroup({
-      layout: this.blurPipeline.getBindGroupLayout(0),
+      layout: this.blurVPipeline.getBindGroupLayout(0),
       entries: [
         { binding: 0, resource: samp },
         { binding: 1, resource: this.bloomBView! },
@@ -2954,9 +3039,13 @@ export class WebGPUContext {
       p.draw(3);
       p.end();
     };
+    // Separable chain: (H,V) = one 5×5 box, run twice — identical to the old
+    // 2× 5×5 loops for 20 taps/pixel instead of 50. Ends in A (composite reads A).
     pass(this.bloomAView!, this.brightPipeline, this.brightBind); // scene → A (bright pass)
-    pass(this.bloomBView!, this.blurPipeline, this.blurBindA); // A → B (blur)
-    pass(this.bloomAView!, this.blurPipeline, this.blurBindB); // B → A (blur, wider)
+    pass(this.bloomBView!, this.blurHPipeline, this.blurBindA); // A → B (blur H)
+    pass(this.bloomAView!, this.blurVPipeline, this.blurBindB); // B → A (blur V)
+    pass(this.bloomBView!, this.blurHPipeline, this.blurBindA); // A → B (blur H, wider)
+    pass(this.bloomAView!, this.blurVPipeline, this.blurBindB); // B → A (blur V)
     pass(canvasView, this.compositePipeline, this.compositeBind); // scene + A → canvas
   }
 
@@ -3051,7 +3140,10 @@ export class WebGPUContext {
   }
 
   private applyExposureTrail(encoder: GPUCommandEncoder): void {
-    if (!this.exposureTrailParams.enabled || this.exposureTrailElapsed >= this.exposureTrailDuration)
+    if (
+      !this.exposureTrailParams.enabled ||
+      this.exposureTrailElapsed >= this.exposureTrailDuration
+    )
       return;
 
     const phase = this.getExposureTrailReplayPhase();
@@ -3080,7 +3172,12 @@ export class WebGPUContext {
 
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        { view: writeView, clearValue: { r: 0, g: 0, b: 0, a: 1 }, loadOp: 'clear', storeOp: 'store' },
+        {
+          view: writeView,
+          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
       ],
     });
     pass.setPipeline(this.temporalPipeline);
@@ -3091,7 +3188,9 @@ export class WebGPUContext {
     this.blitToView(
       encoder,
       this.presentView!,
-      this.buildBlitBindGroup(this.temporalReadIndex === 0 ? this.temporalViewB : this.temporalViewA),
+      this.buildBlitBindGroup(
+        this.temporalReadIndex === 0 ? this.temporalViewB : this.temporalViewA,
+      ),
     );
     this.temporalReadIndex = this.temporalReadIndex === 0 ? 1 : 0;
   }

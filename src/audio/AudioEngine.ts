@@ -36,6 +36,9 @@ export const SILENT_FEATURES: AudioFeatures = {
 const LOG_FEATURES = false;
 
 const FFT_SIZE = 2048;
+// dB → linear amplitude: 10^(dB/20) = e^(dB·ln10/20). exp() is cheaper than
+// pow(10, x) and arithmetically equivalent.
+const DB_TO_LIN = Math.LN10 / 20;
 const MASTER_GAIN = 0.85;
 const FADE = 0.25; // seconds — gain fade in/out, avoids clicks
 // Slow-mo: the fader's warp is applied as a decoded-buffer playbackRate (resampling
@@ -75,6 +78,9 @@ export class AudioEngine {
 
   private timeBuf = new Uint8Array(0);
   private floatBuf = new Float32Array(0); // dB spectrum (linear-converted for the bands + centroid)
+  // Linear amplitudes (10^(dB/20)), converted ONCE per analyse() and shared by the
+  // three band() calls + the centroid — the bands used to re-convert ~370 bins each.
+  private linBuf = new Float32Array(0);
 
   // Resolved bin ranges (set when the graph is built and the sample rate is known).
   private bass: [number, number] = [1, 8];
@@ -389,6 +395,14 @@ export class AudioEngine {
     analyser.getByteTimeDomainData(this.timeBuf);
     analyser.getFloatFrequencyData(this.floatBuf); // dB spectrum for the bands + centroid
 
+    // dB → linear once for the whole spectrum (reused buffer, no allocation).
+    // Sub-noise-floor bins (≤ -120 dB) become 0, which sums identically to the
+    // old per-band skip.
+    for (let i = 0; i < this.floatBuf.length; i++) {
+      const db = this.floatBuf[i];
+      this.linBuf[i] = db > -120 ? Math.exp(db * DB_TO_LIN) : 0;
+    }
+
     // Overall loudness from the time-domain RMS (a truer "volume" than summed bins).
     let sumSq = 0;
     for (let i = 0; i < this.timeBuf.length; i++) {
@@ -510,6 +524,7 @@ export class AudioEngine {
 
     this.timeBuf = new Uint8Array(analyser.fftSize);
     this.floatBuf = new Float32Array(analyser.frequencyBinCount);
+    this.linBuf = new Float32Array(analyser.frequencyBinCount);
     this.binHz = ctx.sampleRate / FFT_SIZE;
     this.bass = this.binRange(BASS_HZ);
     this.mid = this.binRange(MID_HZ);
@@ -551,13 +566,13 @@ export class AudioEngine {
 
   // Mean LINEAR amplitude over a bin range, normalized by `div` → ~0..1. Linear
   // (dB → 10^(dB/20)), NOT the byte/dB spectrum — the byte bands compress dynamics
-  // so a kick and silence both read ~0.9 and the grow never moves.
+  // so a kick and silence both read ~0.9 and the grow never moves. Reads the
+  // shared linBuf converted once per analyse().
   private band(range: [number, number], div: number): number {
     let sum = 0;
     const [a, b] = range;
     for (let i = a; i < b; i++) {
-      const db = this.floatBuf[i];
-      if (db > -120) sum += Math.pow(10, db / 20);
+      sum += this.linBuf[i];
     }
     return clamp01(sum / Math.max(1, b - a) / div);
   }
@@ -571,9 +586,8 @@ export class AudioEngine {
     let weighted = 0;
     let total = 0;
     for (let i = 1; i < this.floatBuf.length; i++) {
-      const db = this.floatBuf[i];
-      if (db < -75) continue; // ignore the noise floor
-      const amp = Math.pow(10, db / 20); // dB → linear amplitude
+      if (this.floatBuf[i] < -75) continue; // ignore the noise floor
+      const amp = this.linBuf[i]; // dB → linear, shared conversion from analyse()
       weighted += i * this.binHz * amp;
       total += amp;
     }

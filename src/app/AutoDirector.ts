@@ -78,12 +78,22 @@ const PRESETS: RenderPreset[] = [
 
 const DIM = 5; // level, bass, mid, treble, centroid
 
+// Shared empty cue list for the (common) frames where no rhythm event fired.
+const NO_CUES: RhythmCue[] = [];
+
 function lerp(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
+// Memoized on the raw src: the per-frame callers always pass the currently
+// playing track's src, so the split/regex work runs only on track change.
+let lastRawSrc: string | null = null;
+let lastNormSrc = '';
 function normalizeTrackSrc(src: string): string {
-  return src.split('?')[0]?.replace(/^https?:\/\/[^/]+/, '') ?? src;
+  if (src === lastRawSrc) return lastNormSrc;
+  lastRawSrc = src;
+  lastNormSrc = src.split('?')[0]?.replace(/^https?:\/\/[^/]+/, '') ?? src;
+  return lastNormSrc;
 }
 
 function followForView(view: string): number | null {
@@ -123,6 +133,7 @@ export class AutoDirector {
 
   private readonly short = new Float32Array(DIM);
   private readonly long = new Float32Array(DIM);
+  private readonly probe = new Float32Array(DIM); // reused per-frame feature vector
   private init = false;
   private since = 0; // seconds since the last switch
   private last = -1; // last preset index (avoid repeating)
@@ -135,7 +146,12 @@ export class AutoDirector {
 
   // Feed one frame; returns a preset to apply when it decides to switch, else null.
   update(dt: number, f: AudioFeatures): RenderPreset | null {
-    const p = [f.level, f.bass, f.mid, f.treble, f.centroid];
+    const p = this.probe; // reused — no per-frame array allocation
+    p[0] = f.level;
+    p[1] = f.bass;
+    p[2] = f.mid;
+    p[3] = f.treble;
+    p[4] = f.centroid;
     if (!this.init) {
       for (let i = 0; i < DIM; i++) this.short[i] = this.long[i] = p[i];
       this.init = true;
@@ -183,6 +199,11 @@ export class TrackStructureDirector {
   private activeSection = -1;
   private lastPosition = 0;
   private readonly cursors = { beats: 0, kicks: 0, snares: 0, toms: 0, rolls: 0 };
+  // 1-entry findTrack memo: App calls hasTrack() + update() (+ durationForTrack)
+  // every frame with the same (name, src) — resolve the lookup once per change.
+  private memoName: string | null = null;
+  private memoSrc: string | null = null;
+  private memoTrack: TrackStructureTrack | null = null;
 
   constructor(analysis: TrackStructureAnalysis) {
     for (const track of analysis.tracks) {
@@ -210,7 +231,7 @@ export class TrackStructureDirector {
     const track = this.findTrack(name, src);
     if (!track) {
       this.reset();
-      return { preset: null, cues: [], role: null };
+      return this.fillResult(null, NO_CUES, null);
     }
     const key = track.src || track.name;
     const t = Math.max(0, Math.min(positionSec, track.duration));
@@ -226,28 +247,55 @@ export class TrackStructureDirector {
     }
 
     const cues = this.collectCues(track, t);
-    const sectionIndex = track.sections.findIndex((s, i) => t >= s.start && (t < s.end || i === track.sections.length - 1));
+    // Indexed loop (findIndex allocates a closure per frame).
+    const sections = track.sections;
+    let sectionIndex = -1;
+    for (let i = 0; i < sections.length; i++) {
+      const s = sections[i]!;
+      if (t >= s.start && (t < s.end || i === sections.length - 1)) {
+        sectionIndex = i;
+        break;
+      }
+    }
     const role = sectionIndex >= 0 ? (track.sections[sectionIndex]?.role ?? null) : null;
     if (sectionIndex < 0 || sectionIndex === this.activeSection) {
       this.lastPosition = t;
-      return { preset: null, cues, role };
+      return this.fillResult(null, cues, role);
     }
     this.activeSection = sectionIndex;
 
     const director = track.sections[sectionIndex]?.director;
     if (!director) {
       this.lastPosition = t;
-      return { preset: null, cues, role };
+      return this.fillResult(null, cues, role);
     }
     const follow = followForView(director.view);
     const shape = shapeForName(director.shape);
     this.lastPosition = t;
-    if (follow === null || shape === null) return { preset: null, cues, role };
-    return { preset: { follow, shape, comet: director.comet }, cues, role };
+    if (follow === null || shape === null) return this.fillResult(null, cues, role);
+    // The preset object only allocates on a section change (rare).
+    return this.fillResult({ follow, shape, comet: director.comet }, cues, role);
+  }
+
+  // Reused result object — App consumes it within the same frame, never retains it.
+  private readonly result: TrackDirectorUpdate = { preset: null, cues: NO_CUES, role: null };
+  private fillResult(
+    preset: DirectedRenderPreset | null,
+    cues: RhythmCue[],
+    role: string | null,
+  ): TrackDirectorUpdate {
+    this.result.preset = preset;
+    this.result.cues = cues;
+    this.result.role = role;
+    return this.result;
   }
 
   private findTrack(name: string, src: string): TrackStructureTrack | null {
-    return this.bySrc.get(normalizeTrackSrc(src)) ?? this.byName.get(name) ?? null;
+    if (name === this.memoName && src === this.memoSrc) return this.memoTrack;
+    this.memoName = name;
+    this.memoSrc = src;
+    this.memoTrack = this.bySrc.get(normalizeTrackSrc(src)) ?? this.byName.get(name) ?? null;
+    return this.memoTrack;
   }
 
   private resetCursors(track?: TrackStructureTrack, positionSec = 0): void {
@@ -260,16 +308,18 @@ export class TrackStructureDirector {
 
   private collectCues(track: TrackStructureTrack, positionSec: number): RhythmCue[] {
     const events = track.events;
-    if (!events) return [];
+    if (!events) return NO_CUES;
     const cues: RhythmCue[] = [];
     this.collectPointCues(cues, 'beat', events.beats, 'beats', positionSec);
     this.collectPointCues(cues, 'kick', events.kicks, 'kicks', positionSec);
     this.collectPointCues(cues, 'snare', events.snares, 'snares', positionSec);
     this.collectPointCues(cues, 'tom', events.toms, 'toms', positionSec);
     this.collectRollCues(cues, events.rolls, positionSec);
-    cues.sort((a, b) => a.time - b.time);
     this.lastPosition = positionSec;
-    return cues.slice(-12);
+    // The common frame fires no cue at all — skip the sort + slice allocations.
+    if (cues.length === 0) return NO_CUES;
+    cues.sort((a, b) => a.time - b.time);
+    return cues.length > 12 ? cues.slice(-12) : cues;
   }
 
   private collectPointCues(

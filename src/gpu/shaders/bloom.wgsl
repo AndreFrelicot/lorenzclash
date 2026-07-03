@@ -1,6 +1,7 @@
 // Screen-space bloom post-process. The scene is rendered to an offscreen texture,
 // then: bright_fs extracts pixels above a threshold (soft knee) into a half-res
-// target, blur_fs blurs it (run twice, ping-pong, for a wider glow), and
+// target, blur_h_fs/blur_v_fs blur it (separable box, the H+V pair ping-ponged
+// twice for a wider glow), and
 // composite_fs adds the blurred glow back over the scene → the canvas. The bright,
 // additive elements (head crest, tail glow, edge tint) bloom; the camera texture
 // (mid-brightness) stays clean → the glow reads as "localized" on the luminous bits.
@@ -50,17 +51,28 @@ fn bright_fs(in: VSOut) -> @location(0) vec4<f32> {
   return vec4<f32>(c * k, 1.0);
 }
 
-// 5×5 box blur at the (half-res) bloom resolution; two passes ≈ a soft gaussian.
+// Separable 5-wide box blur at the (half-res) bloom resolution. One H pass + one V
+// pass = exactly the old 5×5 box (a box kernel is separable); the chain runs the
+// pair twice (H,V,H,V) ≈ a soft gaussian — same result as the old 2× 5×5 loops for
+// 20 taps/pixel instead of 50.
 @fragment
-fn blur_fs(in: VSOut) -> @location(0) vec4<f32> {
+fn blur_h_fs(in: VSOut) -> @location(0) vec4<f32> {
   let texel = bloom.params.zw;
   var sum = vec3<f32>(0.0);
   for (var i = -2; i <= 2; i++) {
-    for (var j = -2; j <= 2; j++) {
-      sum += textureSampleLevel(tex, samp, in.uv + vec2<f32>(f32(i), f32(j)) * texel, 0.0).rgb;
-    }
+    sum += textureSampleLevel(tex, samp, in.uv + vec2<f32>(f32(i), 0.0) * texel, 0.0).rgb;
   }
-  return vec4<f32>(sum / 25.0, 1.0);
+  return vec4<f32>(sum / 5.0, 1.0);
+}
+
+@fragment
+fn blur_v_fs(in: VSOut) -> @location(0) vec4<f32> {
+  let texel = bloom.params.zw;
+  var sum = vec3<f32>(0.0);
+  for (var j = -2; j <= 2; j++) {
+    sum += textureSampleLevel(tex, samp, in.uv + vec2<f32>(0.0, f32(j)) * texel, 0.0).rgb;
+  }
+  return vec4<f32>(sum / 5.0, 1.0);
 }
 
 // Composite: scene + blurred glow × intensity.

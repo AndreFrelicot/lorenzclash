@@ -141,10 +141,12 @@ export function mountStartScreen(
 
   // rAF loop: render the live frame through the engine's capture path until Start.
   let rafId = 0;
+  let previewLive = false; // avoid the idempotent classList.add every frame
   const pump = (): void => {
     rafId = requestAnimationFrame(pump);
     const v = camera?.source ?? null;
-    if (v && host.renderCameraPreview(v, previewCanvas)) {
+    if (v && host.renderCameraPreview(v, previewCanvas) && !previewLive) {
+      previewLive = true;
       preview.classList.add('is-live');
     }
   };
@@ -173,6 +175,7 @@ export function mountStartScreen(
     } catch (err) {
       console.warn('[lorenz] preview camera unavailable', err);
       camera = null;
+      previewLive = false;
       preview.classList.remove('is-live');
       setEmptyText('cameraUnavailable');
     } finally {
@@ -182,6 +185,7 @@ export function mountStartScreen(
 
   const releaseCamera = (): void => {
     stopPump();
+    previewLive = false;
     preview.classList.remove('is-live');
     camera?.destroy();
     camera = null;

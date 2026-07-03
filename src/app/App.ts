@@ -72,6 +72,9 @@ const trackStructureDirectorPromise = import('../audio/track-analysis.json').the
   (module) => new TrackStructureDirector(module.default as unknown as TrackStructureAnalysis),
 );
 
+// Shared empty cue list for director-less frames (no per-frame [] allocation).
+const NO_CUES: RhythmCue[] = [];
+
 function hasTuneUrlFlag(): boolean {
   const query = new URLSearchParams(window.location.search);
   if (query.has('tune')) return true;
@@ -93,6 +96,7 @@ export class App {
   // Stars-only loop shown behind the Start screen (before the running loop).
   private bootRafId: number | null = null;
   private bootStart = 0;
+  private bootLast = 0; // last rendered boot frame (60 fps cap, like the main loop)
   private lastTime = 0;
   private unmountScreen: (() => void) | null = null;
   private legend: LegendHandle | null = null;
@@ -158,7 +162,8 @@ export class App {
   private pixelRippleCooldown = 0;
   private pixelRippleCountdown = 6;
   private readonly exposureAuto = { shortDuration: 1.5, longDuration: 20 };
-  private exposureTrackKey = '';
+  private exposureTrackName = '';
+  private exposureTrackSrc = '';
   private exposureTrackPosition = 0;
   private exposureShortMax = EXPOSURE_SHORT_PER_REFERENCE;
   private exposureLongMax = EXPOSURE_LONG_PER_REFERENCE;
@@ -212,6 +217,17 @@ export class App {
 
   private readonly lorenz = new LorenzMapper(256);
   private lorenz2: LorenzMapper | null = null; // second crossing curve
+  // Reused curve-2 payload passed to renderFrame each frame (no per-frame object).
+  private readonly curve2Frame = {
+    instanceData: new Float32Array(0) as Float32Array,
+    count: 0,
+    head: 0,
+    ageRef: 0,
+    depositedSlots: new Int32Array(0) as Int32Array,
+    depositedCount: 0,
+    depositRate: 0,
+    generation: 0,
+  };
   private stills: StillCycle | null = null;
   // Local video export: live sequence recorder + the export menu.
   private recorder: SequenceRecorder | null = null;
@@ -242,7 +258,10 @@ export class App {
         this.trackStructureDirector = director;
       })
       .catch((err) => {
-        console.warn('[lorenz] track structure analysis unavailable; using classic Auto Director', err);
+        console.warn(
+          '[lorenz] track structure analysis unavailable; using classic Auto Director',
+          err,
+        );
       });
   }
 
@@ -1127,7 +1146,11 @@ export class App {
           },
         ],
         buttons: [
-          { label: 'Trigger rainbow', haptic: 'medium', onClick: () => this.triggerGridRainbow(1.2) },
+          {
+            label: 'Trigger rainbow',
+            haptic: 'medium',
+            onClick: () => this.triggerGridRainbow(1.2),
+          },
         ],
       },
       {
@@ -2249,12 +2272,19 @@ export class App {
     this.pixelRippleCountdown = rate > 0 ? 3 + -Math.log(1 - Math.random()) / rate : Infinity;
   }
 
-  private syncExposureAutoTrack(audio: AudioEngine | null): void {
+  private syncExposureAutoTrack(audio: AudioEngine | null, positionSec: number): void {
     if (!audio?.isEnabled) return;
-    const key = `${audio.trackName}|${audio.currentTrackSrc}`;
-    if (key !== this.exposureTrackKey || audio.positionSec + 0.25 < this.exposureTrackPosition) {
-      this.exposureTrackKey = key;
-      this.exposureTrackPosition = audio.positionSec;
+    // Compare name + src as two fields (no per-frame key-string allocation).
+    const name = audio.trackName;
+    const src = audio.currentTrackSrc;
+    if (
+      name !== this.exposureTrackName ||
+      src !== this.exposureTrackSrc ||
+      positionSec + 0.25 < this.exposureTrackPosition
+    ) {
+      this.exposureTrackName = name;
+      this.exposureTrackSrc = src;
+      this.exposureTrackPosition = positionSec;
       this.setExposureLimitsForTrack(audio);
       this.exposureShortCount = 0;
       this.exposureLongCount = 0;
@@ -2263,7 +2293,7 @@ export class App {
       return;
     }
     this.setExposureLimitsForTrack(audio);
-    this.exposureTrackPosition = audio.positionSec;
+    this.exposureTrackPosition = positionSec;
   }
 
   private setExposureLimitsForTrack(audio: AudioEngine): void {
@@ -2413,7 +2443,8 @@ export class App {
     this.pixelRippleCooldown = Math.max(0, this.pixelRippleCooldown - dt);
     this.pixelRippleCountdown -= dt;
 
-    const roleMul = role === 'drive' ? 1.15 : role === 'groove' ? 1 : role === 'intro' ? 0.35 : 0.75;
+    const roleMul =
+      role === 'drive' ? 1.15 : role === 'groove' ? 1 : role === 'intro' ? 0.35 : 0.75;
     for (const cue of cues) {
       if (cue.kind === 'roll') {
         if (this.maybePixelRipple(cue, this.pixelRippleAuto.chance * 1.4 * roleMul, 1.2)) return;
@@ -2554,6 +2585,13 @@ export class App {
   }
 
   private readonly bootFrame = (now: number): void => {
+    // Same ~60 fps cap as the main loop: a 120 Hz iPad Pro would otherwise render
+    // the start-screen starfield (bg + bloom + blit passes) at 120 fps for nothing.
+    if (now - this.bootLast < MIN_FRAME_MS) {
+      this.bootRafId = requestAnimationFrame(this.bootFrame);
+      return;
+    }
+    this.bootLast = now;
     const time = (now - this.bootStart) / 1000;
     try {
       this.gpu?.renderFrame(
@@ -2817,20 +2855,23 @@ export class App {
 
     const audio = this.audio;
     const structureDirector = this.trackStructureDirector;
-    this.syncExposureAutoTrack(audio);
+    // One position read per frame (the getter integrates the slow-mo clock);
+    // reused by the exposure sync, the director and the rhythm cues below.
+    const positionSec = audio?.isEnabled ? audio.positionSec : 0;
+    this.syncExposureAutoTrack(audio, positionSec);
     let director: TrackDirectorUpdate | null = null;
     if (audio?.isEnabled && structureDirector?.hasTrack(audio.trackName, audio.currentTrackSrc)) {
-      director = structureDirector.update(audio.trackName, audio.currentTrackSrc, audio.positionSec);
+      director = structureDirector.update(audio.trackName, audio.currentTrackSrc, positionSec);
     }
-    this.updatePixelRippleAuto(dt, director?.cues ?? [], director?.role ?? null);
-    this.updateExposureAuto(director, audio?.positionSec ?? 0);
+    this.updatePixelRippleAuto(dt, director?.cues ?? NO_CUES, director?.role ?? null);
+    this.updateExposureAuto(director, positionSec);
 
     // Auto director: switch camera/shape on detected musical section changes.
     // Held while the Frame fader previews the free-orbit view (marginPreviewFollow).
     if (this.autoOn && this.marginPreviewFollow === null && audio?.isEnabled) {
       if (this.autoStructureOn && director) {
         if (director.preset) this.applyStructuredRenderPreset(director.preset);
-        this.handleRhythmCues(director.cues, audio.positionSec, director.role);
+        this.handleRhythmCues(director.cues, positionSec, director.role);
       } else {
         const preset = this.autoDirector.update(dt * this.warp, features);
         if (preset) this.applyRenderPreset(preset);
@@ -3011,22 +3052,23 @@ export class App {
     const useCamera = this.cameraOn && !this.exportDialogOpen;
     const useSynthetic = this.useSynthetic || this.exportDialogOpen;
     const video = useCamera ? (this.camera?.source ?? null) : null;
-    const curve2 = this.lorenz2
-      ? {
-          instanceData: this.lorenz2.instanceData,
-          count: this.lorenz2.count,
-          head: this.lorenz2.headIndex,
-          ageRef: this.lorenz2.ageRef,
-          depositedSlots: this.lorenz2.depositedSlots,
-          depositedCount: this.lorenz2.depositedCount,
-          // BASE deposit rate (no audioSpeedMul): the particle dissolve timing must
-          // not be rescaled by the live audio, or every in-flight particle's prog
-          // jumps each frame as the level moves → jerky. Energy→speed still drives
-          // the scroll via the dt multiplier above. The slow-mo warp IS folded in —
-          // it's eased (smooth, not jittery), so the dissolution slows in phase.
-          depositRate: (this.lorenz2.speed * this.warp) / Math.max(this.lorenz2.spacing, 1e-3),
-        }
-      : null;
+    let curve2: typeof this.curve2Frame | null = null;
+    if (this.lorenz2) {
+      curve2 = this.curve2Frame; // reused payload — no per-frame allocation
+      curve2.instanceData = this.lorenz2.instanceData;
+      curve2.count = this.lorenz2.count;
+      curve2.head = this.lorenz2.headIndex;
+      curve2.ageRef = this.lorenz2.ageRef;
+      curve2.depositedSlots = this.lorenz2.depositedSlots;
+      curve2.depositedCount = this.lorenz2.depositedCount;
+      // BASE deposit rate (no audioSpeedMul): the particle dissolve timing must
+      // not be rescaled by the live audio, or every in-flight particle's prog
+      // jumps each frame as the level moves → jerky. Energy→speed still drives
+      // the scroll via the dt multiplier above. The slow-mo warp IS folded in —
+      // it's eased (smooth, not jittery), so the dissolution slows in phase.
+      curve2.depositRate = (this.lorenz2.speed * this.warp) / Math.max(this.lorenz2.spacing, 1e-3);
+      curve2.generation = this.lorenz2.gpuGeneration;
+    }
     this.gpu?.renderFrame(
       this.lorenz.instanceData,
       this.lorenz.count,
@@ -3043,6 +3085,7 @@ export class App {
       curve2,
       useSynthetic,
       useCamera && this.splitOn, // split: A camera / B synthetic
+      this.lorenz.gpuGeneration, // skips the deposits re-upload on unchanged frames
     );
   }
 
