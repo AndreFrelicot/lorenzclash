@@ -466,6 +466,7 @@ export class App {
       this.recorder = recorder;
       this.exportMenu = mountExportMenu(this.uiRoot, {
         recorder,
+        endCardDurationSec: OUTRO_SEC,
         generate: async (sequences, opts, onProgress) => {
           this.exporting = true; // pause recording while encoding
           try {

@@ -7,7 +7,7 @@
 import type { Sequence, SequenceRecorder } from '../export/SequenceRecorder.ts';
 import { encodeSequences, type ExportOptions, type ExportResult } from '../export/Mp4Encoder.ts';
 import { haptics } from '../haptics.ts';
-import { getMessages, onLocaleChange } from '../i18n.ts';
+import { getLocale, getMessages, onLocaleChange } from '../i18n.ts';
 import { makeIcon, type IconName } from './icons.ts';
 
 export interface ExportMenuHandle {
@@ -19,6 +19,7 @@ export interface ExportMenuHandle {
 
 export interface ExportMenuDeps {
   recorder: SequenceRecorder;
+  endCardDurationSec: number;
   generate: (
     sequences: Sequence[],
     opts: ExportOptions,
@@ -37,6 +38,15 @@ function canShareFiles(): boolean {
 
 function describeBlob(result: ExportResult): string {
   return `${Math.round(result.blob.size / 1e6)}MB type=${result.blob.type || 'n/a'} ext=${result.ext}`;
+}
+
+function formatDuration(seconds: number): string {
+  const value = Math.max(0, seconds);
+  const n = new Intl.NumberFormat(getLocale(), {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  }).format(value);
+  return `${n} s`;
 }
 
 function downloadFile(result: ExportResult, source = 'direct'): void {
@@ -267,6 +277,10 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
   confirmCancel.addEventListener('click', () => endConfirm(false));
   confirmOk.addEventListener('click', () => endConfirm(true));
 
+  const durationSummary = document.createElement('p');
+  durationSummary.className = 'export-duration';
+  panel.appendChild(durationSummary);
+
   const progress = document.createElement('div');
   progress.className = 'export-progress';
   const progressBar = document.createElement('div');
@@ -400,6 +414,18 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
     return order.map((id) => byId.get(id)).filter((s): s is Sequence => !!s);
   }
 
+  function updateDurationSummary(ordered = orderedSequences()): void {
+    const included = ordered.filter((s) => s.included);
+    if (!included.length) {
+      durationSummary.style.display = 'none';
+      return;
+    }
+    const clipsSec = included.reduce((sum, seq) => sum + seq.durationUs / 1_000_000, 0);
+    const totalSec = clipsSec + Math.max(0, deps.endCardDurationSec);
+    durationSummary.textContent = t().exportDuration(formatDuration(totalSec));
+    durationSummary.style.display = '';
+  }
+
   function renderGrid(): void {
     const token = ++renderToken;
     const seqs = deps.recorder.list();
@@ -411,6 +437,7 @@ export function mountExportMenu(parent: HTMLElement, deps: ExportMenuDeps): Expo
     const disposable = deps.recorder.disposableCount();
     removeUnusedLabel.textContent = t().clearUnkeptLabel(disposable);
     curationRow.style.display = disposable > 0 ? '' : 'none';
+    updateDurationSummary(ordered);
     refreshGenerateBtn();
 
     let i = 0;
