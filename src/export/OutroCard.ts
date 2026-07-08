@@ -40,15 +40,15 @@ export function buildQr(url: string): QrMatrix {
   return matrix;
 }
 
-// All card geometry derived from the frame's short edge so it scales portrait + landscape.
-function metrics(
-  short: number,
-  count: number,
-): {
+interface CardMetrics {
+  layout: 'vertical' | 'horizontal';
+  short: number;
   moduleSize: number;
   pad: number;
   cardSize: number;
   gap: number;
+  sideGap: number;
+  textW: number;
   logoW: number;
   logoH: number;
   logoTitleGap: number;
@@ -59,8 +59,12 @@ function metrics(
   contW: number;
   contH: number;
   radius: number;
-} {
-  const moduleSize = Math.max(2, Math.floor((short * 0.34) / count));
+}
+
+// Default stacked card, tuned for desktop and tablet. Phones in portrait get a larger
+// QR target ratio while keeping the same vertical composition.
+function verticalMetrics(short: number, count: number, qrRatio = 0.34): CardMetrics {
+  const moduleSize = Math.max(2, Math.floor((short * qrRatio) / count));
   const qrPx = moduleSize * count;
   const pad = Math.max(Math.round(short * 0.028), moduleSize * 4); // ≥ 4-module quiet zone
   const cardSize = qrPx + pad * 2;
@@ -85,10 +89,14 @@ function metrics(
   const contH = cpad + cardSize + capBlock + cpad;
   const radius = Math.round(short * 0.04);
   return {
+    layout: 'vertical',
+    short,
     moduleSize,
     pad,
     cardSize,
     gap,
+    sideGap: 0,
+    textW: contW,
     logoW,
     logoH,
     logoTitleGap,
@@ -100,6 +108,60 @@ function metrics(
     contH,
     radius,
   };
+}
+
+// Phones in landscape are short but wide. A stacked card is height-bound there and ends up
+// narrow, so use a side-by-side badge that spends the available width on a larger QR.
+function horizontalMetrics(w: number, h: number, count: number): CardMetrics {
+  const short = Math.min(w, h);
+  const cpad = Math.round(short * 0.04);
+  const sideGap = Math.round(short * 0.055);
+  const maxCardSize = Math.max(120, Math.round(short * 0.82) - cpad * 2);
+  const moduleSize = Math.max(3, Math.floor(maxCardSize / (count + 8)));
+  const qrPx = moduleSize * count;
+  const pad = moduleSize * 4; // QR quiet zone: fixed 4 modules, integer-aligned.
+  const cardSize = qrPx + pad * 2;
+  const gap = Math.round(short * 0.03);
+  const logoW = Math.round(short * 0.16);
+  const logoH = Math.round((logoW * 263) / 300);
+  const logoTitleGap = Math.round(short * 0.04);
+  const capTitle = Math.round(short * 0.038);
+  const capSub = Math.round(short * 0.024);
+  const capTag = Math.round(short * 0.031);
+  const minTextW = Math.round(short * 0.52);
+  const textW = Math.max(minTextW, Math.round(Math.min(w * 0.34, short * 0.78)));
+  const contW = cpad + cardSize + sideGap + textW + cpad;
+  const contH = Math.max(cardSize + cpad * 2, Math.round(short * 0.66));
+  const radius = Math.round(short * 0.045);
+  return {
+    layout: 'horizontal',
+    short,
+    moduleSize,
+    pad,
+    cardSize,
+    gap,
+    sideGap,
+    textW,
+    logoW,
+    logoH,
+    logoTitleGap,
+    capTitle,
+    capSub,
+    capTag,
+    cpad,
+    contW,
+    contH,
+    radius,
+  };
+}
+
+function metrics(w: number, h: number, count: number): CardMetrics {
+  const short = Math.min(w, h);
+  const landscape = w > h;
+  const aspect = landscape ? w / h : h / w;
+  if (landscape && aspect >= 1.55 && short <= 700) return horizontalMetrics(w, h, count);
+  const phonePortrait = !landscape && aspect >= 1.65 && short <= 900;
+  return verticalMetrics(short, count, phonePortrait ? 0.44 : 0.34);
 }
 
 function roundRectPath(ctx: Ctx2D, x: number, y: number, w: number, h: number, r: number): void {
@@ -158,22 +220,22 @@ function drawLogo(ctx: Ctx2D, x: number, y: number, w: number, h: number): void 
 }
 
 // Bake the white QR card + caption (transparent background) once per (url, size).
-function getCard(qr: QrMatrix, short: number): OffscreenCanvas {
-  const key = `${qr.caption}|${short}|${qr.count}`;
+function getCard(qr: QrMatrix, frameW: number, frameH: number): OffscreenCanvas {
+  const m = metrics(frameW, frameH, qr.count);
+  const key = `${qr.caption}|${m.layout}|${m.contW}x${m.contH}|${m.moduleSize}|${qr.count}`;
   const hit = cardCache.get(key);
   if (hit) return hit;
 
-  const m = metrics(short, qr.count);
   const canvas = new OffscreenCanvas(m.contW, m.contH);
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
 
-  const cardX = Math.round((m.contW - m.cardSize) / 2);
-  const cardY = m.cpad;
+  const cardX = m.layout === 'horizontal' ? m.cpad : Math.round((m.contW - m.cardSize) / 2);
+  const cardY = m.layout === 'horizontal' ? Math.round((m.contH - m.cardSize) / 2) : m.cpad;
 
   // White card.
   ctx.fillStyle = 'rgb(246, 247, 250)';
-  roundRectPath(ctx, cardX, cardY, m.cardSize, m.cardSize, Math.round(short * 0.018));
+  roundRectPath(ctx, cardX, cardY, m.cardSize, m.cardSize, Math.round(m.short * 0.018));
   ctx.fill();
 
   // QR modules — integer rects on the white quiet zone, near-black for max contrast.
@@ -191,26 +253,36 @@ function getCard(qr: QrMatrix, short: number): OffscreenCanvas {
   // Caption: host (bold) + a spaced uppercase call-to-action.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  const logoX = Math.round((m.contW - m.logoW) / 2);
-  const logoY = cardY + m.cardSize + m.gap;
+  const textCenterX =
+    m.layout === 'horizontal' ? cardX + m.cardSize + m.sideGap + m.textW / 2 : m.contW / 2;
+  const textTop =
+    m.layout === 'horizontal'
+      ? Math.round(
+          (m.contH -
+            (m.logoH + m.logoTitleGap + m.capTitle + m.gap + m.capSub + m.gap + m.capTag)) /
+            2,
+        )
+      : cardY + m.cardSize + m.gap;
+  const logoX = Math.round(textCenterX - m.logoW / 2);
+  const logoY = textTop;
   drawLogo(ctx, logoX, logoY, m.logoW, m.logoH);
 
   const titleY = logoY + m.logoH + m.logoTitleGap + m.capTitle;
   ctx.font = `700 ${m.capTitle}px "Space Grotesk", system-ui, sans-serif`;
   ctx.fillStyle = 'rgba(247, 249, 252, 0.96)';
-  ctx.fillText(qr.caption, m.contW / 2, titleY);
+  ctx.fillText(qr.caption, textCenterX, titleY, m.textW);
 
   ctx.font = `600 ${m.capSub}px "Space Grotesk", system-ui, sans-serif`;
   ctx.fillStyle = 'rgba(170, 182, 200, 0.82)';
-  ctx.letterSpacing = `${Math.max(1, Math.round(short * 0.004))}px`;
-  const subY = titleY + Math.round(short * 0.026) + m.capSub;
-  ctx.fillText('SCAN TO ENTER THE CHAOS', m.contW / 2, subY);
+  ctx.letterSpacing = `${Math.max(1, Math.round(m.short * 0.004))}px`;
+  const subY = titleY + Math.round(m.short * 0.026) + m.capSub;
+  ctx.fillText('SCAN TO ENTER THE CHAOS', textCenterX, subY, m.textW);
   ctx.letterSpacing = '0px';
 
   // Red hashtag handle under the CTA.
   ctx.font = `700 ${m.capTag}px "Space Grotesk", system-ui, sans-serif`;
   ctx.fillStyle = '#ff3b3b';
-  ctx.fillText('#lorenzclash', m.contW / 2, subY + Math.round(short * 0.022) + m.capTag);
+  ctx.fillText('#lorenzclash', textCenterX, subY + Math.round(m.short * 0.022) + m.capTag, m.textW);
 
   cardCache.set(key, canvas);
   return canvas;
@@ -234,7 +306,7 @@ export function drawOutroOverlay(
   const w = ctx.canvas.width;
   const h = ctx.canvas.height;
   const short = Math.min(w, h);
-  const m = metrics(short, qr.count);
+  const m = metrics(w, h, qr.count);
 
   const contX = Math.round((w - m.contW) / 2);
   const contY = Math.round((h - m.contH) / 2);
@@ -268,7 +340,7 @@ export function drawOutroOverlay(
 
   // Static QR + caption card (crisp).
   ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(getCard(qr, short), contX, contY);
+  ctx.drawImage(getCard(qr, w, h), contX, contY);
 
   ctx.restore();
 }
