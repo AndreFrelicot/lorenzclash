@@ -10,6 +10,8 @@ import { aacSupported } from './codec.ts';
 import type { Sequence } from './SequenceRecorder.ts';
 import type { ClipPayload } from './ClipStore.ts';
 
+type MediabunnyModule = typeof import('mediabunny');
+
 export interface ExportOptions {
   includeAudio: boolean;
   // 'per-clip': each clip carries the music that played during it (synced, with join
@@ -35,6 +37,7 @@ interface AudioSegment {
 }
 
 const FADE_SEC = 0.01; // ~10 ms fade at each clip boundary → no join clicks
+let mediabunnyAacRegistered = false;
 
 // 2-byte AAC-LC AudioSpecificConfig (object type 2 + sample-rate index + channel config).
 // Some browsers don't expose this via the encoder metadata; the muxer needs it for esds.
@@ -45,6 +48,117 @@ function aacLcAsc(sampleRate: number, channels: number): Uint8Array {
   const idx = rates.indexOf(sampleRate) < 0 ? 4 : rates.indexOf(sampleRate); // 44100 fallback
   const objectType = 2;
   return new Uint8Array([(objectType << 3) | (idx >> 1), ((idx & 1) << 7) | (channels << 3)]);
+}
+
+async function loadMediabunnyAac(): Promise<MediabunnyModule> {
+  const [mediabunny, aac] = await Promise.all([
+    import('mediabunny'),
+    import('@mediabunny/aac-encoder'),
+  ]);
+  if (!mediabunnyAacRegistered) {
+    aac.registerAacEncoder();
+    mediabunnyAacRegistered = true;
+  }
+  return mediabunny;
+}
+
+function chunkBytes(chunk: EncodedVideoChunk): Uint8Array {
+  const bytes = new Uint8Array(chunk.byteLength);
+  chunk.copyTo(bytes);
+  return bytes;
+}
+
+function inferredChunkDurationUs(
+  seq: Sequence,
+  chunks: EncodedVideoChunk[],
+  index: number,
+): number {
+  const chunk = chunks[index];
+  if (chunk.duration && chunk.duration > 0) return chunk.duration;
+  const next = chunks[index + 1];
+  if (next) return Math.max(1, next.timestamp - chunk.timestamp);
+  return Math.max(1, seq.durationUs - chunk.timestamp);
+}
+
+async function loadPayload(
+  seq: Sequence,
+  loadChunks?: (seq: Sequence) => Promise<ClipPayload>,
+): Promise<ClipPayload> {
+  if (seq.chunks) return { chunks: seq.chunks, meta: seq.meta };
+  if (loadChunks) return await loadChunks(seq);
+  throw new Error('clip chunks unavailable (no loader provided)');
+}
+
+async function encodeSequencesWithAacWasm(
+  sequences: Sequence[],
+  audio: AudioSegment,
+  onProgress?: (p: number) => void,
+  loadChunks?: (seq: Sequence) => Promise<ClipPayload>,
+): Promise<ExportResult> {
+  const {
+    AudioSample,
+    AudioSampleSource,
+    BufferTarget,
+    EncodedPacket,
+    EncodedVideoPacketSource,
+    Mp4OutputFormat,
+    Output,
+  } = await loadMediabunnyAac();
+
+  const target = new BufferTarget();
+  const output = new Output({
+    format: new Mp4OutputFormat(),
+    target,
+  });
+  const videoSource = new EncodedVideoPacketSource('avc');
+  const audioSource = new AudioSampleSource({ codec: 'aac', bitrate: 192_000 });
+
+  output.addVideoTrack(videoSource, { frameRate: 30 });
+  output.addAudioTrack(audioSource);
+  await output.start();
+
+  let tOffsetUs = 0;
+  let metaWritten = false;
+  for (const seq of sequences) {
+    const payload = await loadPayload(seq, loadChunks);
+    for (let i = 0; i < payload.chunks.length; i++) {
+      const chunk = payload.chunks[i];
+      const packet = new EncodedPacket(
+        chunkBytes(chunk),
+        chunk.type,
+        (chunk.timestamp + tOffsetUs) / 1_000_000,
+        inferredChunkDurationUs(seq, payload.chunks, i) / 1_000_000,
+      );
+      await videoSource.add(packet, metaWritten ? undefined : payload.meta);
+      metaWritten = true;
+    }
+    tOffsetUs += seq.durationUs;
+  }
+  videoSource.close();
+  onProgress?.(0.5);
+
+  const block = Math.floor(audio.sampleRate * 0.1); // ~100 ms per AudioSample
+  let off = 0;
+  while (off < audio.frames) {
+    const n = Math.min(block, audio.frames - off);
+    const sample = new AudioSample({
+      data: audio.data.slice(off * audio.channels, (off + n) * audio.channels),
+      format: 'f32',
+      numberOfChannels: audio.channels,
+      sampleRate: audio.sampleRate,
+      timestamp: off / audio.sampleRate,
+    });
+    await audioSource.add(sample);
+    sample.close();
+    off += n;
+    onProgress?.(0.5 + (off / audio.frames) * 0.5);
+  }
+  audioSource.close();
+
+  await output.finalize();
+  if (!target.buffer) throw new Error('Mediabunny output finalized without a buffer');
+  onProgress?.(1);
+  return { blob: new Blob([target.buffer], { type: 'video/mp4' }), ext: 'mp4' };
 }
 
 export async function encodeSequences(
@@ -60,10 +174,14 @@ export async function encodeSequences(
   const width = sequences[0].width;
   const height = sequences[0].height;
 
-  const audio =
-    opts.includeAudio && (await aacSupported())
-      ? await buildAudio(sequences, opts.audioMode)
-      : null;
+  const nativeAac = opts.includeAudio ? await aacSupported() : false;
+  const audio = opts.includeAudio ? await buildAudio(sequences, opts.audioMode) : null;
+
+  // Firefox can encode H.264 video with WebCodecs but currently has no AAC AudioEncoder.
+  // Keep MP4 output by using Mediabunny's WASM AAC encoder only on that unsupported path.
+  if (audio && !nativeAac) {
+    return await encodeSequencesWithAacWasm(sequences, audio, onProgress, loadChunks);
+  }
 
   const muxer = new Muxer({
     target: new ArrayBufferTarget(),
@@ -80,10 +198,7 @@ export async function encodeSequences(
   let metaWritten = false;
   for (const seq of sequences) {
     // One clip's chunks in RAM at a time (loaded from disk unless still carried in RAM).
-    let payload: ClipPayload;
-    if (seq.chunks) payload = { chunks: seq.chunks, meta: seq.meta };
-    else if (loadChunks) payload = await loadChunks(seq);
-    else throw new Error('clip chunks unavailable (no loader provided)');
+    const payload = await loadPayload(seq, loadChunks);
     for (const chunk of payload.chunks) {
       muxer.addVideoChunk(
         chunk,

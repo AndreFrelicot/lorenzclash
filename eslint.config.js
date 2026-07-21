@@ -7,6 +7,15 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+      },
+    },
+  },
+  {
     rules: {
       // Allow intentionally-unused identifiers prefixed with `_` (e.g. hook
       // parameters reserved for later milestones). Matches TS noUnusedParameters.

@@ -330,20 +330,23 @@ const en: Translation = {
       deleteDesc:
         'Trash a single clip, or use “Clear unkept” to remove every clip that isn’t kept (starred). A quick confirm guards both.',
       soundName: 'Sound',
-      soundDesc: 'Include the music. Synced = each clip keeps its own moment; Continuous = one unbroken track.',
+      soundDesc:
+        'Include the music. Synced = each clip keeps its own moment; Continuous = one unbroken track.',
       generateName: 'Generate',
-      generateDesc: 'Render the included clips into one video, then Download it or Share via your device.',
+      generateDesc:
+        'Render the included clips into one video, then Download it or Share via your device.',
       deviceLimitsName: 'Device limits',
       deviceLimitsDesc:
         'Export resolution and frame rate adapt to your device’s memory — fuller on a computer, more limited on phones and tablets, where clips may be softer or less smooth.',
       browserName: 'Browser',
-      browserDesc: 'Lorenz Clash requires a recent WebGPU-capable browser and a secure HTTPS connection.',
+      browserDesc:
+        'Lorenz Clash requires WebGPU and a secure HTTPS connection. Safari exposes WebGPU on macOS Tahoe 26+, iOS/iPadOS 26+ and visionOS 26+.',
       recommendedName: 'Recommended',
       recommendedDesc:
-        'Modern desktop browser, recent Android flagship or performance-focused upper-midrange phone running Chrome on Android 12+, iPhone SE 2022 / iPhone 13 or newer, or iPad Pro 2018 or newer.',
+        'Recent Chrome/Edge on desktop, recent Android flagship or performance-focused upper-midrange phone running Chrome on Android 12+, or Safari 26 on a supported Apple OS.',
       olderDevicesName: 'Older devices',
       olderDevicesDesc:
-        'Android performance varies widely. Budget and midrange phones may reduce frame rate, especially with camera mode and video export.',
+        'Safari 26 on macOS Sequoia/Sonoma does not expose WebGPU; use Chrome/Edge there. Android performance varies widely, especially with camera mode and video export.',
     },
   },
   exportMenu: {
@@ -358,7 +361,8 @@ const en: Translation = {
     sound: 'Sound',
     exportDuration: (duration) => `Video duration: ${duration}`,
     clearUnkeptLabel: (n) => `Clear unkept (${n})`,
-    clearUnkeptConfirm: (n) => `Clear ${n} unkept clip${n > 1 ? 's' : ''}? Only kept (starred) clips stay.`,
+    clearUnkeptConfirm: (n) =>
+      `Clear ${n} unkept clip${n > 1 ? 's' : ''}? Only kept (starred) clips stay.`,
     generateVideo: 'Generate Video',
     generated: 'Generated ✓',
     generating: 'Generating…',
@@ -373,7 +377,7 @@ const en: Translation = {
   },
   unsupported: {
     messageHtml:
-      'WebGPU is not available on this browser.<br />Try a recent Chromium browser (Chrome/Edge) with WebGPU enabled, on Android or desktop.',
+      'WebGPU is not available on this browser.<br />Safari requires macOS Tahoe 26, iOS/iPadOS 26 or visionOS 26+. On macOS Sequoia/Sonoma, use recent Chrome/Edge.',
   },
 };
 
@@ -381,7 +385,14 @@ export const messages: Record<Locale, Translation> = {
   en,
   fr: {
     ...en,
-    common: { close: 'Fermer', reload: 'Recharger', cancel: 'Annuler', delete: 'Supprimer', download: 'Télécharger', share: 'Partager' },
+    common: {
+      close: 'Fermer',
+      reload: 'Recharger',
+      cancel: 'Annuler',
+      delete: 'Supprimer',
+      download: 'Télécharger',
+      share: 'Partager',
+    },
     language: {
       buttonLabel: 'Changer de langue',
       title: 'Langue',
@@ -468,49 +479,59 @@ export const messages: Record<Locale, Translation> = {
         cameraName: 'Caméra',
         cameraDesc: 'Active ou coupe la caméra comme matière visuelle.',
         exportName: 'Export',
-        exportDesc: 'Ouvre Partager & exporter : prévisualiser, réordonner, choisir le son, puis générer une vidéo.',
+        exportDesc:
+          'Ouvre Partager & exporter : prévisualiser, réordonner, choisir le son, puis générer une vidéo.',
         trackName: 'Morceau',
         trackDesc: 'Passe au morceau suivant.',
         frameName: 'Cadrage',
         frameDesc: 'Ouvre un fader pour resserrer ou élargir le cadrage de la vue libre.',
         speedName: 'Vitesse',
-        speedDesc: 'Ouvre un pad XY pour régler la vitesse des courbes. Double-clic ou double-tap pour revenir aux défauts.',
+        speedDesc:
+          'Ouvre un pad XY pour régler la vitesse des courbes. Double-clic ou double-tap pour revenir aux défauts.',
         autoName: 'Auto',
         autoDesc: 'Réalisateur automatique — change caméra et formes en rythme avec la musique.',
         slowmoName: 'Ralenti',
-        slowmoDesc: 'Maintenez puis glissez — tirez vers le bas pour ralentir le temps et la musique ; relâchez pour revenir.',
+        slowmoDesc:
+          'Maintenez puis glissez — tirez vers le bas pour ralentir le temps et la musique ; relâchez pour revenir.',
         pinchName: 'Pincer',
-        pinchDesc: 'Écartez deux doigts pour zoomer — le zoom revient quand vous relâchez. Bureau : molette ou pincement trackpad.',
+        pinchDesc:
+          'Écartez deux doigts pour zoomer — le zoom revient quand vous relâchez. Bureau : molette ou pincement trackpad.',
         clipsName: 'Clips',
         clipsDesc:
           'Les captures et apparitions automatiques arrivent ici. Glissez pour réordonner, touchez pour prévisualiser. L’auto-capture se met en pause quand les clips non gardés saturent la liste.',
         includeName: 'Inclure',
         includeDesc: 'Choisit si un clip fait partie de la vidéo exportée.',
         keepName: 'Garder',
-        keepDesc: 'Étoile un clip pour le garder — jamais supprimé automatiquement et hors limite d’auto-capture.',
+        keepDesc:
+          'Étoile un clip pour le garder — jamais supprimé automatiquement et hors limite d’auto-capture.',
         deleteName: 'Supprimer',
-        deleteDesc: 'Supprime un clip, ou “Vider non gardés” pour enlever tous les clips non étoilés.',
+        deleteDesc:
+          'Supprime un clip, ou “Vider non gardés” pour enlever tous les clips non étoilés.',
         soundName: 'Son',
-        soundDesc: 'Inclut la musique. Synchro = chaque clip garde son moment ; Continu = un morceau sans coupe.',
+        soundDesc:
+          'Inclut la musique. Synchro = chaque clip garde son moment ; Continu = un morceau sans coupe.',
         generateName: 'Générer',
-        generateDesc: 'Rend les clips inclus en une seule vidéo, puis téléchargez-la ou partagez-la.',
+        generateDesc:
+          'Rend les clips inclus en une seule vidéo, puis téléchargez-la ou partagez-la.',
         deviceLimitsName: 'Limites appareil',
         deviceLimitsDesc:
           'La résolution et la cadence d’export s’adaptent à la mémoire — plus généreuses sur ordinateur, plus limitées sur mobiles et tablettes.',
         browserName: 'Navigateur',
-        browserDesc: 'Lorenz Clash nécessite un navigateur récent compatible WebGPU et une connexion HTTPS sécurisée.',
+        browserDesc:
+          'Lorenz Clash nécessite WebGPU et une connexion HTTPS sécurisée. Safari expose WebGPU sur macOS Tahoe 26+, iOS/iPadOS 26+ et visionOS 26+.',
         recommendedName: 'Recommandé',
         recommendedDesc:
-          'Navigateur desktop moderne, Android flagship récent ou milieu de gamme performant avec Chrome sur Android 12+, iPhone SE 2022 / iPhone 13 ou plus récent, ou iPad Pro 2018 ou plus récent.',
+          'Chrome/Edge récent sur desktop, Android flagship récent ou milieu de gamme performant avec Chrome sur Android 12+, ou Safari 26 sur un OS Apple compatible.',
         olderDevicesName: 'Anciens appareils',
         olderDevicesDesc:
-          'Les performances Android varient beaucoup. Les modèles budget ou milieu de gamme peuvent réduire la fluidité, surtout avec la caméra et l’export vidéo.',
+          'Safari 26 sous macOS Sequoia/Sonoma n’expose pas WebGPU ; utilisez Chrome/Edge sur ces OS. Les performances Android varient beaucoup, surtout avec la caméra et l’export vidéo.',
       },
     },
     exportMenu: {
       ...en.exportMenu,
       title: 'Partager & exporter',
-      empty: 'Laissez tourner le mode fond, ou touchez Capture 5s — chaque clip apparaît ici. Touchez pour prévisualiser, glissez pour réordonner.',
+      empty:
+        'Laissez tourner le mode fond, ou touchez Capture 5s — chaque clip apparaît ici. Touchez pour prévisualiser, glissez pour réordonner.',
       synced: 'Synchro',
       syncedTitle: 'Chaque clip garde la musique jouée pendant lui',
       continuous: 'Continu',
@@ -519,7 +540,8 @@ export const messages: Record<Locale, Translation> = {
       sound: 'Son',
       exportDuration: (duration) => `Durée vidéo : ${duration}`,
       clearUnkeptLabel: (n) => `Vider non gardés (${n})`,
-      clearUnkeptConfirm: (n) => `Supprimer ${n} clip${n > 1 ? 's' : ''} non gardé${n > 1 ? 's' : ''} ? Seuls les clips étoilés restent.`,
+      clearUnkeptConfirm: (n) =>
+        `Supprimer ${n} clip${n > 1 ? 's' : ''} non gardé${n > 1 ? 's' : ''} ? Seuls les clips étoilés restent.`,
       generateVideo: 'Générer la vidéo',
       generated: 'Généré ✓',
       generating: 'Génération…',
@@ -534,12 +556,19 @@ export const messages: Record<Locale, Translation> = {
     },
     unsupported: {
       messageHtml:
-        'WebGPU n’est pas disponible dans ce navigateur.<br />Essayez un navigateur Chromium récent (Chrome/Edge) avec WebGPU activé, sur Android ou ordinateur.',
+        'WebGPU n’est pas disponible dans ce navigateur.<br />Safari nécessite macOS Tahoe 26, iOS/iPadOS 26 ou visionOS 26+. Sur macOS Sequoia/Sonoma, utilisez Chrome/Edge récent.',
     },
   },
   de: {
     ...en,
-    common: { close: 'Schließen', reload: 'Neu laden', cancel: 'Abbrechen', delete: 'Löschen', download: 'Download', share: 'Teilen' },
+    common: {
+      close: 'Schließen',
+      reload: 'Neu laden',
+      cancel: 'Abbrechen',
+      delete: 'Löschen',
+      download: 'Download',
+      share: 'Teilen',
+    },
     language: {
       buttonLabel: 'Sprache ändern',
       title: 'Sprache',
@@ -592,12 +621,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('de'),
     unsupported: {
       messageHtml:
-        'WebGPU ist in diesem Browser nicht verfügbar.<br />Nutze einen aktuellen Chromium-Browser (Chrome/Edge) mit aktiviertem WebGPU auf Android oder Desktop.',
+        'WebGPU ist in diesem Browser nicht verfügbar.<br />Safari benötigt macOS Tahoe 26, iOS/iPadOS 26 oder visionOS 26+. Auf macOS Sequoia/Sonoma nutze aktuelles Chrome/Edge.',
     },
   },
   es: {
     ...en,
-    common: { close: 'Cerrar', reload: 'Recargar', cancel: 'Cancelar', delete: 'Eliminar', download: 'Descargar', share: 'Compartir' },
+    common: {
+      close: 'Cerrar',
+      reload: 'Recargar',
+      cancel: 'Cancelar',
+      delete: 'Eliminar',
+      download: 'Descargar',
+      share: 'Compartir',
+    },
     language: {
       buttonLabel: 'Cambiar idioma',
       title: 'Idioma',
@@ -650,12 +686,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('es'),
     unsupported: {
       messageHtml:
-        'WebGPU no está disponible en este navegador.<br />Prueba un navegador Chromium reciente (Chrome/Edge) con WebGPU activado, en Android o escritorio.',
+        'WebGPU no está disponible en este navegador.<br />Safari requiere macOS Tahoe 26, iOS/iPadOS 26 o visionOS 26+. En macOS Sequoia/Sonoma, usa Chrome/Edge reciente.',
     },
   },
   'pt-BR': {
     ...en,
-    common: { close: 'Fechar', reload: 'Recarregar', cancel: 'Cancelar', delete: 'Excluir', download: 'Baixar', share: 'Compartilhar' },
+    common: {
+      close: 'Fechar',
+      reload: 'Recarregar',
+      cancel: 'Cancelar',
+      delete: 'Excluir',
+      download: 'Baixar',
+      share: 'Compartilhar',
+    },
     language: {
       buttonLabel: 'Alterar idioma',
       title: 'Idioma',
@@ -708,12 +751,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('pt-BR'),
     unsupported: {
       messageHtml:
-        'WebGPU não está disponível neste navegador.<br />Use um navegador Chromium recente (Chrome/Edge) com WebGPU ativado, no Android ou desktop.',
+        'WebGPU não está disponível neste navegador.<br />O Safari requer macOS Tahoe 26, iOS/iPadOS 26 ou visionOS 26+. No macOS Sequoia/Sonoma, use Chrome/Edge recente.',
     },
   },
   ja: {
     ...en,
-    common: { close: '閉じる', reload: '再読み込み', cancel: 'キャンセル', delete: '削除', download: 'ダウンロード', share: '共有' },
+    common: {
+      close: '閉じる',
+      reload: '再読み込み',
+      cancel: 'キャンセル',
+      delete: '削除',
+      download: 'ダウンロード',
+      share: '共有',
+    },
     language: {
       buttonLabel: '言語を変更',
       title: '言語',
@@ -766,12 +816,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('ja'),
     unsupported: {
       messageHtml:
-        'このブラウザでは WebGPU を利用できません。<br />Android またはデスクトップで、WebGPU を有効にした最新の Chromium ブラウザ（Chrome/Edge）をお試しください。',
+        'このブラウザでは WebGPU を利用できません。<br />Safari には macOS Tahoe 26、iOS/iPadOS 26、または visionOS 26 以降が必要です。macOS Sequoia/Sonoma では最新の Chrome/Edge を使ってください。',
     },
   },
   ko: {
     ...en,
-    common: { close: '닫기', reload: '새로고침', cancel: '취소', delete: '삭제', download: '다운로드', share: '공유' },
+    common: {
+      close: '닫기',
+      reload: '새로고침',
+      cancel: '취소',
+      delete: '삭제',
+      download: '다운로드',
+      share: '공유',
+    },
     language: {
       buttonLabel: '언어 변경',
       title: '언어',
@@ -824,12 +881,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('ko'),
     unsupported: {
       messageHtml:
-        '이 브라우저에서는 WebGPU를 사용할 수 없습니다.<br />Android 또는 데스크톱에서 WebGPU가 켜진 최신 Chromium 브라우저(Chrome/Edge)를 사용해 보세요.',
+        '이 브라우저에서는 WebGPU를 사용할 수 없습니다.<br />Safari는 macOS Tahoe 26, iOS/iPadOS 26 또는 visionOS 26 이상이 필요합니다. macOS Sequoia/Sonoma에서는 최신 Chrome/Edge를 사용하세요.',
     },
   },
   'zh-Hans': {
     ...en,
-    common: { close: '关闭', reload: '重新加载', cancel: '取消', delete: '删除', download: '下载', share: '分享' },
+    common: {
+      close: '关闭',
+      reload: '重新加载',
+      cancel: '取消',
+      delete: '删除',
+      download: '下载',
+      share: '分享',
+    },
     language: {
       buttonLabel: '切换语言',
       title: '语言',
@@ -854,8 +918,7 @@ export const messages: Record<Locale, Translation> = {
       privacyHtml:
         '<strong>100% 本机处理。</strong> 你的相机、照片和视频不会离开设备 — 没有后端，也不会上传。',
       systemRequirements: '系统要求',
-      photosensitivityHtml:
-        '<strong>光敏警告。</strong> 包含闪光、频闪和快速颜色变化。',
+      photosensitivityHtml: '<strong>光敏警告。</strong> 包含闪光、频闪和快速颜色变化。',
       headphonesHtml: '<strong>建议使用耳机。</strong>',
     },
     controls: {
@@ -882,12 +945,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('zh-Hans'),
     unsupported: {
       messageHtml:
-        '此浏览器不支持 WebGPU。<br />请在 Android 或桌面设备上尝试启用 WebGPU 的新版 Chromium 浏览器（Chrome/Edge）。',
+        '此浏览器不支持 WebGPU。<br />Safari 需要 macOS Tahoe 26、iOS/iPadOS 26 或 visionOS 26+。在 macOS Sequoia/Sonoma 上，请使用新版 Chrome/Edge。',
     },
   },
   th: {
     ...en,
-    common: { close: 'ปิด', reload: 'โหลดใหม่', cancel: 'ยกเลิก', delete: 'ลบ', download: 'ดาวน์โหลด', share: 'แชร์' },
+    common: {
+      close: 'ปิด',
+      reload: 'โหลดใหม่',
+      cancel: 'ยกเลิก',
+      delete: 'ลบ',
+      download: 'ดาวน์โหลด',
+      share: 'แชร์',
+    },
     language: {
       buttonLabel: 'เปลี่ยนภาษา',
       title: 'ภาษา',
@@ -940,12 +1010,19 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('th'),
     unsupported: {
       messageHtml:
-        'เบราว์เซอร์นี้ไม่รองรับ WebGPU<br />ลองใช้เบราว์เซอร์ Chromium รุ่นใหม่ (Chrome/Edge) ที่เปิด WebGPU บน Android หรือเดสก์ท็อป',
+        'เบราว์เซอร์นี้ไม่รองรับ WebGPU<br />Safari ต้องใช้ macOS Tahoe 26, iOS/iPadOS 26 หรือ visionOS 26+ บน macOS Sequoia/Sonoma ให้ใช้ Chrome/Edge รุ่นใหม่',
     },
   },
   hi: {
     ...en,
-    common: { close: 'बंद करें', reload: 'रीलोड', cancel: 'रद्द करें', delete: 'हटाएँ', download: 'डाउनलोड', share: 'शेयर' },
+    common: {
+      close: 'बंद करें',
+      reload: 'रीलोड',
+      cancel: 'रद्द करें',
+      delete: 'हटाएँ',
+      download: 'डाउनलोड',
+      share: 'शेयर',
+    },
     language: {
       buttonLabel: 'भाषा बदलें',
       title: 'भाषा',
@@ -998,7 +1075,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('hi'),
     unsupported: {
       messageHtml:
-        'इस ब्राउज़र में WebGPU उपलब्ध नहीं है।<br />Android या डेस्कटॉप पर WebGPU-सक्षम नए Chromium ब्राउज़र (Chrome/Edge) का उपयोग करें।',
+        'इस ब्राउज़र में WebGPU उपलब्ध नहीं है।<br />Safari के लिए macOS Tahoe 26, iOS/iPadOS 26 या visionOS 26+ चाहिए। macOS Sequoia/Sonoma पर नया Chrome/Edge उपयोग करें।',
     },
   },
   id: {
@@ -1063,7 +1140,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('id'),
     unsupported: {
       messageHtml:
-        'WebGPU tidak tersedia di browser ini.<br />Coba browser Chromium terbaru (Chrome/Edge) dengan WebGPU aktif, di Android atau desktop.',
+        'WebGPU tidak tersedia di browser ini.<br />Safari memerlukan macOS Tahoe 26, iOS/iPadOS 26, atau visionOS 26+. Di macOS Sequoia/Sonoma, gunakan Chrome/Edge terbaru.',
     },
   },
   ar: {
@@ -1128,7 +1205,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('ar'),
     unsupported: {
       messageHtml:
-        'WebGPU غير متاح في هذا المتصفح.<br />جرّب متصفح Chromium حديثًا (Chrome/Edge) مع تفعيل WebGPU على Android أو سطح المكتب.',
+        'WebGPU غير متاح في هذا المتصفح.<br />يتطلب Safari macOS Tahoe 26 أو iOS/iPadOS 26 أو visionOS 26+. على macOS Sequoia/Sonoma استخدم Chrome/Edge حديثًا.',
     },
   },
   ru: {
@@ -1193,7 +1270,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('ru'),
     unsupported: {
       messageHtml:
-        'WebGPU недоступен в этом браузере.<br />Попробуйте свежий Chromium-браузер (Chrome/Edge) с включённым WebGPU на Android или desktop.',
+        'WebGPU недоступен в этом браузере.<br />Safari требует macOS Tahoe 26, iOS/iPadOS 26 или visionOS 26+. На macOS Sequoia/Sonoma используйте свежий Chrome/Edge.',
     },
   },
   it: {
@@ -1258,7 +1335,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('it'),
     unsupported: {
       messageHtml:
-        'WebGPU non è disponibile in questo browser.<br />Prova un browser Chromium recente (Chrome/Edge) con WebGPU attivo, su Android o desktop.',
+        'WebGPU non è disponibile in questo browser.<br />Safari richiede macOS Tahoe 26, iOS/iPadOS 26 o visionOS 26+. Su macOS Sequoia/Sonoma usa Chrome/Edge recente.',
     },
   },
   tr: {
@@ -1323,7 +1400,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('tr'),
     unsupported: {
       messageHtml:
-        'WebGPU bu tarayıcıda kullanılamıyor.<br />Android veya desktop üzerinde WebGPU açık güncel bir Chromium tarayıcı (Chrome/Edge) deneyin.',
+        'WebGPU bu tarayıcıda kullanılamıyor.<br />Safari için macOS Tahoe 26, iOS/iPadOS 26 veya visionOS 26+ gerekir. macOS Sequoia/Sonoma’da güncel Chrome/Edge kullanın.',
     },
   },
   bn: {
@@ -1388,7 +1465,7 @@ export const messages: Record<Locale, Translation> = {
     exportMenu: makeTranslatedExport('bn'),
     unsupported: {
       messageHtml:
-        'এই ব্রাউজারে WebGPU নেই।<br />Android বা ডেস্কটপে WebGPU চালু থাকা নতুন Chromium ব্রাউজার (Chrome/Edge) ব্যবহার করুন।',
+        'এই ব্রাউজারে WebGPU নেই।<br />Safari-এর জন্য macOS Tahoe 26, iOS/iPadOS 26 বা visionOS 26+ দরকার। macOS Sequoia/Sonoma-এ নতুন Chrome/Edge ব্যবহার করুন।',
     },
   },
 };
@@ -1397,7 +1474,10 @@ type CompactLocale = Exclude<Locale, 'en' | 'fr'>;
 
 function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
   const base = en.legend;
-  const tables: Record<CompactLocale, Partial<Translation['legend']> & { items: Partial<Translation['legend']['items']> }> = {
+  const tables: Record<
+    CompactLocale,
+    Partial<Translation['legend']> & { items: Partial<Translation['legend']['items']> }
+  > = {
     de: {
       controlsTitle: 'Steuerung',
       exportClipsTitle: 'Teilen & Export — Clips',
@@ -1412,8 +1492,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Erstellt von André Frélicot.',
         date: 'Juni 2026',
         privacyTitle: 'Datenschutz',
-        privacyLine1: 'Alles läuft auf deinem Gerät. Kamera, Fotos und Videos verlassen es nie — kein Backend.',
-        privacyLine2: 'Nur anonyme Besuchszählung, ohne Cookies, IP-Tracking oder personenbezogene Daten.',
+        privacyLine1:
+          'Alles läuft auf deinem Gerät. Kamera, Fotos und Videos verlassen es nie — kein Backend.',
+        privacyLine2:
+          'Nur anonyme Besuchszählung, ohne Cookies, IP-Tracking oder personenbezogene Daten.',
       },
       items: {
         shapeName: 'Form',
@@ -1423,7 +1505,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'Ansicht',
         viewDesc: 'Wechselt die Kamera: freie Umlaufbahn → Kurve A → Kurve B.',
         snapshotName: 'Snapshot',
-        snapshotDesc: 'Nimmt 5 Sekunden der Live-Ansicht auf. Hintergrundauftritte werden auch automatisch gesammelt.',
+        snapshotDesc:
+          'Nimmt 5 Sekunden der Live-Ansicht auf. Hintergrundauftritte werden auch automatisch gesammelt.',
         musicName: 'Musik',
         musicDesc: 'Ton oder stumm — die Musik steuert die Visuals immer.',
         splitName: 'Teilung',
@@ -1437,7 +1520,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         frameName: 'Ausschnitt',
         frameDesc: 'Öffnet einen Fader für den Bildausschnitt der freien Ansicht.',
         speedName: 'Tempo',
-        speedDesc: 'Öffnet ein XY-Pad für die Kurvengeschwindigkeit. Doppelklick/-tipp setzt zurück.',
+        speedDesc:
+          'Öffnet ein XY-Pad für die Kurvengeschwindigkeit. Doppelklick/-tipp setzt zurück.',
         autoName: 'Auto',
         autoDesc: 'Automatische Regie — wechselt Kamera und Formen im Takt der Musik.',
         slowmoName: 'Zeitlupe',
@@ -1445,7 +1529,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         pinchName: 'Aufziehen',
         pinchDesc: 'Zwei Finger spreizen zum Zoomen; beim Loslassen federt es zurück.',
         clipsName: 'Clips',
-        clipsDesc: 'Snapshots und automatische Auftritte sammeln sich hier. Ziehen zum Sortieren, tippen zur Vorschau.',
+        clipsDesc:
+          'Snapshots und automatische Auftritte sammeln sich hier. Ziehen zum Sortieren, tippen zur Vorschau.',
         includeName: 'Einbeziehen',
         includeDesc: 'Legt fest, ob der Clip im Export enthalten ist.',
         keepName: 'Behalten',
@@ -1453,20 +1538,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Löschen',
         deleteDesc: 'Löscht einen Clip oder alle nicht markierten Clips.',
         soundName: 'Sound',
-        soundDesc: 'Musik einbeziehen. Synchron = jeder Clip behält seinen Moment; Kontinuierlich = ein Track.',
+        soundDesc:
+          'Musik einbeziehen. Synchron = jeder Clip behält seinen Moment; Kontinuierlich = ein Track.',
         generateName: 'Erzeugen',
         generateDesc: 'Rendert die Clips zu einem Video zum Herunterladen oder Teilen.',
         deviceLimitsName: 'Gerätelimits',
         deviceLimitsDesc: 'Auflösung und Framerate passen sich an Speicher und Gerät an.',
         browserName: 'Browser',
         browserDesc:
-          'Lorenz Clash benötigt einen aktuellen WebGPU-fähigen Browser und eine sichere HTTPS-Verbindung.',
+          'Lorenz Clash benötigt WebGPU und eine sichere HTTPS-Verbindung. Safari stellt WebGPU unter macOS Tahoe 26+, iOS/iPadOS 26+ und visionOS 26+ bereit.',
         recommendedName: 'Empfohlen',
         recommendedDesc:
-          'Moderner Desktop-Browser, aktuelles Android-Flaggschiff oder leistungsstarkes oberes Mittelklassegerät mit Chrome auf Android 12+, iPhone SE 2022 / iPhone 13 oder neuer oder iPad Pro 2018 oder neuer.',
+          'Aktuelles Chrome/Edge auf Desktop, aktuelles Android-Flaggschiff oder leistungsstarkes oberes Mittelklassegerät mit Chrome auf Android 12+ oder Safari 26 auf einem unterstützten Apple-OS.',
         olderDevicesName: 'Ältere Geräte',
         olderDevicesDesc:
-          'Die Android-Leistung variiert stark. Günstige und Mittelklassegeräte können die Framerate senken, besonders mit Kameramodus und Videoexport.',
+          'Safari 26 auf macOS Sequoia/Sonoma stellt WebGPU nicht bereit; nutze dort Chrome/Edge. Android-Leistung variiert stark, besonders mit Kamera und Videoexport.',
       },
     },
     es: {
@@ -1483,8 +1569,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Creado por André Frélicot.',
         date: 'Junio de 2026',
         privacyTitle: 'Privacidad',
-        privacyLine1: 'Todo se ejecuta en tu dispositivo. Cámara, fotos y videos nunca salen de él — no hay backend.',
-        privacyLine2: 'Solo conteo anónimo de visitas, sin cookies, seguimiento IP ni datos personales.',
+        privacyLine1:
+          'Todo se ejecuta en tu dispositivo. Cámara, fotos y videos nunca salen de él — no hay backend.',
+        privacyLine2:
+          'Solo conteo anónimo de visitas, sin cookies, seguimiento IP ni datos personales.',
       },
       items: {
         shapeName: 'Forma',
@@ -1494,7 +1582,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'Vista',
         viewDesc: 'Cambia la cámara: órbita libre → seguir A → seguir B.',
         snapshotName: 'Captura',
-        snapshotDesc: 'Graba 5 segundos de la vista. Las apariciones de fondo también se capturan automáticamente.',
+        snapshotDesc:
+          'Graba 5 segundos de la vista. Las apariciones de fondo también se capturan automáticamente.',
         musicName: 'Música',
         musicDesc: 'Activa sonido o silencio — la música siempre impulsa los visuales.',
         splitName: 'División',
@@ -1524,20 +1613,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Eliminar',
         deleteDesc: 'Elimina un clip o todos los no guardados.',
         soundName: 'Sonido',
-        soundDesc: 'Incluye la música. Sincronizado = cada clip conserva su momento; Continuo = una pista.',
+        soundDesc:
+          'Incluye la música. Sincronizado = cada clip conserva su momento; Continuo = una pista.',
         generateName: 'Generar',
         generateDesc: 'Renderiza los clips en un video para descargar o compartir.',
         deviceLimitsName: 'Límites del dispositivo',
         deviceLimitsDesc: 'Resolución y fps se adaptan a la memoria del dispositivo.',
         browserName: 'Navegador',
         browserDesc:
-          'Lorenz Clash requiere un navegador reciente compatible con WebGPU y una conexión HTTPS segura.',
+          'Lorenz Clash requiere WebGPU y una conexión HTTPS segura. Safari expone WebGPU en macOS Tahoe 26+, iOS/iPadOS 26+ y visionOS 26+.',
         recommendedName: 'Recomendado',
         recommendedDesc:
-          'Navegador de escritorio moderno, Android flagship reciente o gama media-alta orientada al rendimiento con Chrome en Android 12+, iPhone SE 2022 / iPhone 13 o posterior, o iPad Pro 2018 o posterior.',
+          'Chrome/Edge reciente en escritorio, Android flagship reciente o gama media-alta orientada al rendimiento con Chrome en Android 12+, o Safari 26 en un sistema Apple compatible.',
         olderDevicesName: 'Dispositivos antiguos',
         olderDevicesDesc:
-          'El rendimiento en Android varía mucho. Los modelos económicos o de gama media pueden reducir la fluidez, especialmente con el modo cámara y la exportación de video.',
+          'Safari 26 en macOS Sequoia/Sonoma no expone WebGPU; usa Chrome/Edge ahí. El rendimiento Android varía mucho, especialmente con cámara y exportación de video.',
       },
     },
     'pt-BR': {
@@ -1554,8 +1644,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Criado por André Frélicot.',
         date: 'Junho de 2026',
         privacyTitle: 'Privacidade',
-        privacyLine1: 'Tudo roda no seu dispositivo. Câmera, fotos e vídeos nunca saem dele — não há backend.',
-        privacyLine2: 'Apenas contagem anônima de visitas, sem cookies, rastreamento de IP ou dados pessoais.',
+        privacyLine1:
+          'Tudo roda no seu dispositivo. Câmera, fotos e vídeos nunca saem dele — não há backend.',
+        privacyLine2:
+          'Apenas contagem anônima de visitas, sem cookies, rastreamento de IP ou dados pessoais.',
       },
       items: {
         shapeName: 'Forma',
@@ -1565,7 +1657,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'Vista',
         viewDesc: 'Troca a câmera: órbita livre → seguir A → seguir B.',
         snapshotName: 'Captura',
-        snapshotDesc: 'Grava 5 segundos da vista. Aparições de fundo também são capturadas automaticamente.',
+        snapshotDesc:
+          'Grava 5 segundos da vista. Aparições de fundo também são capturadas automaticamente.',
         musicName: 'Música',
         musicDesc: 'Som ou mudo — a música sempre guia os visuais.',
         splitName: 'Divisão',
@@ -1595,20 +1688,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Excluir',
         deleteDesc: 'Exclui um clipe ou todos os não marcados.',
         soundName: 'Som',
-        soundDesc: 'Inclui a música. Sincronizado = cada clipe mantém seu momento; Contínuo = uma faixa.',
+        soundDesc:
+          'Inclui a música. Sincronizado = cada clipe mantém seu momento; Contínuo = uma faixa.',
         generateName: 'Gerar',
         generateDesc: 'Renderiza os clipes em um vídeo para baixar ou compartilhar.',
         deviceLimitsName: 'Limites do dispositivo',
         deviceLimitsDesc: 'Resolução e fps se adaptam à memória do dispositivo.',
         browserName: 'Navegador',
         browserDesc:
-          'Lorenz Clash requer um navegador recente compatível com WebGPU e uma conexão HTTPS segura.',
+          'Lorenz Clash requer WebGPU e uma conexão HTTPS segura. O Safari expõe WebGPU no macOS Tahoe 26+, iOS/iPadOS 26+ e visionOS 26+.',
         recommendedName: 'Recomendado',
         recommendedDesc:
-          'Navegador desktop moderno, Android flagship recente ou intermediário premium focado em desempenho com Chrome no Android 12+, iPhone SE 2022 / iPhone 13 ou posterior, ou iPad Pro 2018 ou posterior.',
+          'Chrome/Edge recente no desktop, Android flagship recente ou intermediário premium focado em desempenho com Chrome no Android 12+, ou Safari 26 em um Apple OS compatível.',
         olderDevicesName: 'Dispositivos antigos',
         olderDevicesDesc:
-          'O desempenho no Android varia muito. Aparelhos de entrada ou intermediários podem reduzir a fluidez, especialmente com modo câmera e exportação de vídeo.',
+          'Safari 26 no macOS Sequoia/Sonoma não expõe WebGPU; use Chrome/Edge nesses OS. O desempenho Android varia muito, especialmente com câmera e exportação de vídeo.',
       },
     },
     ja: {
@@ -1625,7 +1719,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: '制作：André Frélicot',
         date: '2026年6月',
         privacyTitle: 'プライバシー',
-        privacyLine1: 'すべて端末上で動作します。カメラ、写真、動画は端末から出ません — バックエンドはありません。',
+        privacyLine1:
+          'すべて端末上で動作します。カメラ、写真、動画は端末から出ません — バックエンドはありません。',
         privacyLine2: '匿名の訪問数のみ。Cookie、IP追跡、個人データはありません。',
       },
       items: {
@@ -1672,13 +1767,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: '端末制限',
         deviceLimitsDesc: '解像度とフレームレートは端末のメモリに合わせて調整されます。',
         browserName: 'ブラウザ',
-        browserDesc: 'Lorenz Clash には、WebGPU 対応の新しいブラウザと安全な HTTPS 接続が必要です。',
+        browserDesc:
+          'Lorenz Clash には WebGPU と安全な HTTPS 接続が必要です。Safari は macOS Tahoe 26+、iOS/iPadOS 26+、visionOS 26+ で WebGPU を公開します。',
         recommendedName: '推奨',
         recommendedDesc:
-          '最新のデスクトップブラウザ、Android 12+ の Chrome で動く新しめの Android フラッグシップまたは高性能ミドルハイ端末、iPhone SE 2022 / iPhone 13 以降、または iPad Pro 2018 以降。',
+          'デスクトップでは最新の Chrome/Edge、Android 12+ の Chrome で動く新しめの Android フラッグシップまたは高性能ミドルハイ端末、または対応 Apple OS の Safari 26。',
         olderDevicesName: '古い端末',
         olderDevicesDesc:
-          'Android の性能差は大きく、低価格/ミドルレンジ端末では、特にカメラモードや動画書き出しでフレームレートが下がることがあります。',
+          'macOS Sequoia/Sonoma の Safari 26 は WebGPU を公開しません。その OS では Chrome/Edge を使ってください。Android の性能差は特にカメラや動画書き出しで大きく出ます。',
       },
     },
     ko: {
@@ -1742,13 +1838,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: '기기 제한',
         deviceLimitsDesc: '해상도와 프레임레이트는 기기 메모리에 맞춰 조정됩니다.',
         browserName: '브라우저',
-        browserDesc: 'Lorenz Clash에는 WebGPU를 지원하는 최신 브라우저와 안전한 HTTPS 연결이 필요합니다.',
+        browserDesc:
+          'Lorenz Clash에는 WebGPU와 안전한 HTTPS 연결이 필요합니다. Safari는 macOS Tahoe 26+, iOS/iPadOS 26+ 및 visionOS 26+에서 WebGPU를 노출합니다.',
         recommendedName: '권장',
         recommendedDesc:
-          '최신 데스크톱 브라우저, Android 12+ Chrome을 실행하는 최신 Android 플래그십 또는 성능 중심 상위 중급폰, iPhone SE 2022 / iPhone 13 이후, 또는 iPad Pro 2018 이후.',
+          '데스크톱의 최신 Chrome/Edge, Android 12+ Chrome을 실행하는 최신 Android 플래그십 또는 성능 중심 상위 중급폰, 또는 지원되는 Apple OS의 Safari 26.',
         olderDevicesName: '오래된 기기',
         olderDevicesDesc:
-          'Android 성능은 기기마다 크게 다릅니다. 보급형/중급 기기는 특히 카메라 모드와 영상 내보내기에서 프레임레이트가 낮아질 수 있습니다.',
+          'macOS Sequoia/Sonoma의 Safari 26은 WebGPU를 노출하지 않습니다. 해당 OS에서는 Chrome/Edge를 사용하세요. Android 성능은 특히 카메라와 영상 내보내기에서 크게 다릅니다.',
       },
     },
     'zh-Hans': {
@@ -1812,13 +1909,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: '设备限制',
         deviceLimitsDesc: '导出分辨率和帧率会根据设备内存调整。',
         browserName: '浏览器',
-        browserDesc: 'Lorenz Clash 需要支持 WebGPU 的新款浏览器，以及安全的 HTTPS 连接。',
+        browserDesc:
+          'Lorenz Clash 需要 WebGPU 和安全的 HTTPS 连接。Safari 在 macOS Tahoe 26+、iOS/iPadOS 26+ 和 visionOS 26+ 上提供 WebGPU。',
         recommendedName: '推荐',
         recommendedDesc:
-          '现代桌面浏览器、运行 Android 12+ Chrome 的近期 Android 旗舰机或性能型中高端机、iPhone SE 2022 / iPhone 13 或更新机型，或 iPad Pro 2018 或更新机型。',
+          '桌面端新版 Chrome/Edge、运行 Android 12+ Chrome 的近期 Android 旗舰机或性能型中高端机，或受支持 Apple OS 上的 Safari 26。',
         olderDevicesName: '旧设备',
         olderDevicesDesc:
-          'Android 性能差异很大。入门/中端手机可能会降低帧率，尤其是在相机模式和视频导出时。',
+          'macOS Sequoia/Sonoma 上的 Safari 26 不会暴露 WebGPU；请在这些系统上使用 Chrome/Edge。Android 性能差异很大，尤其是在相机和视频导出时。',
       },
     },
     th: {
@@ -1836,7 +1934,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         date: 'มิถุนายน 2026',
         privacyTitle: 'ความเป็นส่วนตัว',
         privacyLine1: 'ทุกอย่างทำงานบนอุปกรณ์ของคุณ กล้อง รูปภาพ และวิดีโอไม่ออกจากอุปกรณ์',
-        privacyLine2: 'นับผู้ชมแบบไม่ระบุตัวตนเท่านั้น ไม่มี cookies, IP tracking หรือข้อมูลส่วนตัว',
+        privacyLine2:
+          'นับผู้ชมแบบไม่ระบุตัวตนเท่านั้น ไม่มี cookies, IP tracking หรือข้อมูลส่วนตัว',
       },
       items: {
         shapeName: 'รูปทรง',
@@ -1882,13 +1981,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: 'ข้อจำกัดอุปกรณ์',
         deviceLimitsDesc: 'ความละเอียดและ fps จะปรับตามหน่วยความจำของอุปกรณ์',
         browserName: 'เบราว์เซอร์',
-        browserDesc: 'Lorenz Clash ต้องใช้เบราว์เซอร์รุ่นใหม่ที่รองรับ WebGPU และการเชื่อมต่อ HTTPS ที่ปลอดภัย',
+        browserDesc:
+          'Lorenz Clash ต้องใช้ WebGPU และการเชื่อมต่อ HTTPS ที่ปลอดภัย Safari เปิด WebGPU บน macOS Tahoe 26+, iOS/iPadOS 26+ และ visionOS 26+',
         recommendedName: 'แนะนำ',
         recommendedDesc:
-          'เบราว์เซอร์เดสก์ท็อปรุ่นใหม่, Android เรือธงรุ่นใหม่หรือรุ่นกลางบนที่เน้นประสิทธิภาพพร้อม Chrome บน Android 12+, iPhone SE 2022 / iPhone 13 หรือใหม่กว่า, หรือ iPad Pro 2018 หรือใหม่กว่า',
+          'Chrome/Edge รุ่นใหม่บนเดสก์ท็อป, Android เรือธงรุ่นใหม่หรือรุ่นกลางบนที่เน้นประสิทธิภาพพร้อม Chrome บน Android 12+, หรือ Safari 26 บน Apple OS ที่รองรับ',
         olderDevicesName: 'อุปกรณ์เก่า',
         olderDevicesDesc:
-          'ประสิทธิภาพ Android แตกต่างกันมาก เครื่องราคาประหยัด/ระดับกลางอาจลดเฟรมเรต โดยเฉพาะในโหมดกล้องและการส่งออกวิดีโอ',
+          'Safari 26 บน macOS Sequoia/Sonoma ไม่เปิด WebGPU ให้ใช้ ให้ใช้ Chrome/Edge บน OS เหล่านั้น ประสิทธิภาพ Android แตกต่างกันมาก โดยเฉพาะโหมดกล้องและการส่งออกวิดีโอ',
       },
     },
     hi: {
@@ -1905,7 +2005,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'André Frélicot द्वारा निर्मित।',
         date: 'जून 2026',
         privacyTitle: 'गोपनीयता',
-        privacyLine1: 'सब कुछ आपके डिवाइस पर चलता है। कैमरा, फ़ोटो और वीडियो बाहर नहीं जाते — कोई सर्वर-पक्ष नहीं।',
+        privacyLine1:
+          'सब कुछ आपके डिवाइस पर चलता है। कैमरा, फ़ोटो और वीडियो बाहर नहीं जाते — कोई सर्वर-पक्ष नहीं।',
         privacyLine2: 'सिर्फ़ अनाम दर्शक गणना; कुकी, IP ट्रैकिंग या व्यक्तिगत डेटा नहीं।',
       },
       items: {
@@ -1916,7 +2017,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'दृश्य',
         viewDesc: 'दृश्य बदलें: मुक्त कक्षा → A का अनुसरण → B का अनुसरण।',
         snapshotName: 'रिकॉर्ड',
-        snapshotDesc: 'सजीव दृश्य की 5 सेकंड क्लिप रिकॉर्ड करें। पृष्ठभूमि क्षण भी अपने आप जुटते हैं।',
+        snapshotDesc:
+          'सजीव दृश्य की 5 सेकंड क्लिप रिकॉर्ड करें। पृष्ठभूमि क्षण भी अपने आप जुटते हैं।',
         musicName: 'संगीत',
         musicDesc: 'ध्वनि या मौन — संगीत हमेशा दृश्य चलाता है।',
         splitName: 'विभाजन',
@@ -1930,7 +2032,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         frameName: 'फ़्रेम',
         frameDesc: 'मुक्त दृश्य की फ़्रेमिंग कसने या ढीली करने के लिए फ़ेडर खोलें।',
         speedName: 'गति',
-        speedDesc: 'हर वक्र की गति सेट करने के लिए XY पैड खोलें। डबल-क्लिक या डबल-टैप से डिफ़ॉल्ट लौटते हैं।',
+        speedDesc:
+          'हर वक्र की गति सेट करने के लिए XY पैड खोलें। डबल-क्लिक या डबल-टैप से डिफ़ॉल्ट लौटते हैं।',
         autoName: 'स्वचालित',
         autoDesc: 'स्वचालित निर्देशक — संगीत के साथ कैमरा और आकार बदलता है।',
         slowmoName: 'स्लो-मो',
@@ -1946,19 +2049,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'हटाएँ',
         deleteDesc: 'एक क्लिप या सभी न रखे गए क्लिप हटाएँ।',
         soundName: 'ध्वनि',
-        soundDesc: 'संगीत शामिल करें। सिंक्रनाइज़ = हर क्लिप अपना समय रखती है; निरंतर = एक लगातार ट्रैक।',
+        soundDesc:
+          'संगीत शामिल करें। सिंक्रनाइज़ = हर क्लिप अपना समय रखती है; निरंतर = एक लगातार ट्रैक।',
         generateName: 'बनाएँ',
         generateDesc: 'क्लिप्स को एक वीडियो में रेंडर करें, फिर डाउनलोड या साझा करें।',
         deviceLimitsName: 'डिवाइस सीमाएँ',
         deviceLimitsDesc: 'निर्यात रेज़ोल्यूशन और fps डिवाइस मेमरी के हिसाब से बदलते हैं।',
         browserName: 'ब्राउज़र',
-        browserDesc: 'Lorenz Clash के लिए WebGPU-सक्षम नया ब्राउज़र और सुरक्षित HTTPS कनेक्शन चाहिए।',
+        browserDesc:
+          'Lorenz Clash के लिए WebGPU और सुरक्षित HTTPS कनेक्शन चाहिए। Safari macOS Tahoe 26+, iOS/iPadOS 26+ और visionOS 26+ पर WebGPU उपलब्ध कराता है।',
         recommendedName: 'सुझाव',
         recommendedDesc:
-          'आधुनिक डेस्कटॉप ब्राउज़र, Android 12+ Chrome वाला हाल का Android फ्लैगशिप या प्रदर्शन-केंद्रित ऊपरी मिडरेंज फ़ोन, iPhone SE 2022 / iPhone 13 या नया, या iPad Pro 2018 या नया।',
+          'डेस्कटॉप पर नया Chrome/Edge, Android 12+ Chrome वाला हाल का Android फ्लैगशिप या प्रदर्शन-केंद्रित ऊपरी मिडरेंज फ़ोन, या समर्थित Apple OS पर Safari 26।',
         olderDevicesName: 'पुराने डिवाइस',
         olderDevicesDesc:
-          'Android प्रदर्शन काफ़ी अलग-अलग हो सकता है। बजट/मिडरेंज फ़ोन खासकर कैमरा मोड और वीडियो निर्यात में फ़्रेमरेट घटा सकते हैं।',
+          'macOS Sequoia/Sonoma पर Safari 26 WebGPU उपलब्ध नहीं कराता; वहाँ Chrome/Edge उपयोग करें। Android प्रदर्शन खासकर कैमरा और वीडियो निर्यात में बहुत अलग-अलग हो सकता है।',
       },
     },
     id: {
@@ -1975,8 +2080,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Dibuat oleh André Frélicot.',
         date: 'Juni 2026',
         privacyTitle: 'Privasi',
-        privacyLine1: 'Semua berjalan di perangkat Anda. Kamera, foto, dan video tidak pernah keluar — tidak ada backend.',
-        privacyLine2: 'Hanya hitungan kunjungan anonim, tanpa cookies, pelacakan IP, atau data pribadi.',
+        privacyLine1:
+          'Semua berjalan di perangkat Anda. Kamera, foto, dan video tidak pernah keluar — tidak ada backend.',
+        privacyLine2:
+          'Hanya hitungan kunjungan anonim, tanpa cookies, pelacakan IP, atau data pribadi.',
       },
       items: {
         shapeName: 'Bentuk',
@@ -2004,7 +2111,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         autoName: 'Auto',
         autoDesc: 'Sutradara otomatis — mengganti kamera dan bentuk mengikuti musik.',
         slowmoName: 'Slow-mo',
-        slowmoDesc: 'Tekan dan tahan lalu seret — tarik ke bawah untuk memperlambat waktu dan musik.',
+        slowmoDesc:
+          'Tekan dan tahan lalu seret — tarik ke bawah untuk memperlambat waktu dan musik.',
         pinchName: 'Pinch out',
         pinchDesc: 'Rentangkan dua jari untuk zoom; kembali saat dilepas.',
         clipsName: 'Klip',
@@ -2016,19 +2124,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Hapus',
         deleteDesc: 'Hapus satu klip atau semua klip yang tidak disimpan.',
         soundName: 'Suara',
-        soundDesc: 'Sertakan musik. Sinkron = tiap klip mempertahankan momennya; Kontinu = satu track.',
+        soundDesc:
+          'Sertakan musik. Sinkron = tiap klip mempertahankan momennya; Kontinu = satu track.',
         generateName: 'Buat',
         generateDesc: 'Render klip menjadi satu video, lalu unduh atau bagikan.',
         deviceLimitsName: 'Batas perangkat',
         deviceLimitsDesc: 'Resolusi dan fps ekspor menyesuaikan memori perangkat.',
         browserName: 'Browser',
-        browserDesc: 'Lorenz Clash membutuhkan browser modern dengan WebGPU dan koneksi HTTPS aman.',
+        browserDesc:
+          'Lorenz Clash membutuhkan WebGPU dan koneksi HTTPS aman. Safari mengekspos WebGPU di macOS Tahoe 26+, iOS/iPadOS 26+, dan visionOS 26+.',
         recommendedName: 'Disarankan',
         recommendedDesc:
-          'Browser desktop modern, Android flagship terbaru atau upper-midrange berfokus performa dengan Chrome di Android 12+, iPhone SE 2022 / iPhone 13 atau lebih baru, atau iPad Pro 2018 atau lebih baru.',
+          'Chrome/Edge terbaru di desktop, Android flagship terbaru atau upper-midrange berfokus performa dengan Chrome di Android 12+, atau Safari 26 di Apple OS yang didukung.',
         olderDevicesName: 'Perangkat lama',
         olderDevicesDesc:
-          'Performa Android sangat bervariasi. Ponsel budget/midrange dapat menurunkan frame rate, terutama dengan mode kamera dan ekspor video.',
+          'Safari 26 di macOS Sequoia/Sonoma tidak mengekspos WebGPU; gunakan Chrome/Edge di OS tersebut. Performa Android sangat bervariasi, terutama dengan kamera dan ekspor video.',
       },
     },
     ar: {
@@ -2045,8 +2155,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'صنعها André Frélicot.',
         date: 'يونيو 2026',
         privacyTitle: 'الخصوصية',
-        privacyLine1: 'كل شيء يعمل على جهازك. الكاميرا والصور والفيديوهات لا تغادره أبدًا — لا توجد خدمة خلفية.',
-        privacyLine2: 'إحصاءات جمهور فقط: عدّ زيارات مجهول، بلا cookies أو تتبع IP أو بيانات شخصية.',
+        privacyLine1:
+          'كل شيء يعمل على جهازك. الكاميرا والصور والفيديوهات لا تغادره أبدًا — لا توجد خدمة خلفية.',
+        privacyLine2:
+          'إحصاءات جمهور فقط: عدّ زيارات مجهول، بلا cookies أو تتبع IP أو بيانات شخصية.',
       },
       items: {
         shapeName: 'الشكل',
@@ -2092,13 +2204,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: 'حدود الجهاز',
         deviceLimitsDesc: 'تتكيّف دقة التصدير ومعدل الإطارات مع ذاكرة الجهاز.',
         browserName: 'المتصفح',
-        browserDesc: 'يتطلب Lorenz Clash متصفحًا حديثًا يدعم WebGPU واتصال HTTPS آمنًا.',
+        browserDesc:
+          'يتطلب Lorenz Clash WebGPU واتصال HTTPS آمنًا. يوفّر Safari WebGPU على macOS Tahoe 26+ و iOS/iPadOS 26+ و visionOS 26+.',
         recommendedName: 'موصى به',
         recommendedDesc:
-          'متصفح سطح مكتب حديث، هاتف Android رائد حديث أو فئة متوسطة عليا موجهة للأداء مع Chrome على Android 12+، iPhone SE 2022 / iPhone 13 أو أحدث، أو iPad Pro 2018 أو أحدث.',
+          'Chrome/Edge حديث على سطح المكتب، أو هاتف Android رائد حديث أو فئة متوسطة عليا مع Chrome على Android 12+، أو Safari 26 على نظام Apple مدعوم.',
         olderDevicesName: 'الأجهزة القديمة',
         olderDevicesDesc:
-          'يتفاوت أداء Android كثيرًا. قد تخفض الهواتف الاقتصادية/المتوسطة معدل الإطارات، خصوصًا مع وضع الكاميرا وتصدير الفيديو.',
+          'Safari 26 على macOS Sequoia/Sonoma لا يوفّر WebGPU؛ استخدم Chrome/Edge هناك. يختلف أداء Android كثيرًا، خصوصًا مع الكاميرا وتصدير الفيديو.',
       },
     },
     ru: {
@@ -2115,8 +2228,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Создано André Frélicot.',
         date: 'Июнь 2026',
         privacyTitle: 'Приватность',
-        privacyLine1: 'Всё работает на вашем устройстве. Камера, фото и видео не покидают его — backend отсутствует.',
-        privacyLine2: 'Только анонимный подсчёт посещений, без cookies, IP-трекинга и персональных данных.',
+        privacyLine1:
+          'Всё работает на вашем устройстве. Камера, фото и видео не покидают его — backend отсутствует.',
+        privacyLine2:
+          'Только анонимный подсчёт посещений, без cookies, IP-трекинга и персональных данных.',
       },
       items: {
         shapeName: 'Форма',
@@ -2126,7 +2241,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'Вид',
         viewDesc: 'Переключает камеру: свободная орбита → следить A → следить B.',
         snapshotName: 'Снимок',
-        snapshotDesc: 'Записывает 5 секунд live-вида. Фоновые появления также собираются автоматически.',
+        snapshotDesc:
+          'Записывает 5 секунд live-вида. Фоновые появления также собираются автоматически.',
         musicName: 'Музыка',
         musicDesc: 'Звук или без звука — музыка всегда управляет визуалом.',
         splitName: 'Разделение',
@@ -2156,19 +2272,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Удалить',
         deleteDesc: 'Удалить один клип или все несохранённые.',
         soundName: 'Звук',
-        soundDesc: 'Включить музыку. Синхронно = каждый клип сохраняет момент; Непрерывно = один трек.',
+        soundDesc:
+          'Включить музыку. Синхронно = каждый клип сохраняет момент; Непрерывно = один трек.',
         generateName: 'Создать',
         generateDesc: 'Собрать клипы в одно видео, затем скачать или поделиться.',
         deviceLimitsName: 'Ограничения устройства',
         deviceLimitsDesc: 'Разрешение и fps экспорта подстраиваются под память устройства.',
         browserName: 'Браузер',
-        browserDesc: 'Lorenz Clash требует современный браузер с WebGPU и безопасное HTTPS-соединение.',
+        browserDesc:
+          'Lorenz Clash требует WebGPU и безопасное HTTPS-соединение. Safari предоставляет WebGPU на macOS Tahoe 26+, iOS/iPadOS 26+ и visionOS 26+.',
         recommendedName: 'Рекомендуется',
         recommendedDesc:
-          'Современный desktop-браузер, свежий Android-флагман или производительный верхний средний класс с Chrome на Android 12+, iPhone SE 2022 / iPhone 13 или новее, либо iPad Pro 2018 или новее.',
+          'Свежий Chrome/Edge на desktop, свежий Android-флагман или производительный верхний средний класс с Chrome на Android 12+, либо Safari 26 на поддерживаемой Apple OS.',
         olderDevicesName: 'Старые устройства',
         olderDevicesDesc:
-          'Производительность Android сильно различается. Бюджетные и средние телефоны могут снижать frame rate, особенно в режиме камеры и при экспорте видео.',
+          'Safari 26 на macOS Sequoia/Sonoma не предоставляет WebGPU; используйте там Chrome/Edge. Производительность Android сильно различается, особенно с камерой и экспортом видео.',
       },
     },
     it: {
@@ -2185,8 +2303,10 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'Creato da André Frélicot.',
         date: 'Giugno 2026',
         privacyTitle: 'Privacy',
-        privacyLine1: 'Tutto gira sul tuo dispositivo. Fotocamera, foto e video non lo lasciano mai — nessun backend.',
-        privacyLine2: 'Solo conteggi anonimi delle visite, senza cookies, tracciamento IP o dati personali.',
+        privacyLine1:
+          'Tutto gira sul tuo dispositivo. Fotocamera, foto e video non lo lasciano mai — nessun backend.',
+        privacyLine2:
+          'Solo conteggi anonimi delle visite, senza cookies, tracciamento IP o dati personali.',
       },
       items: {
         shapeName: 'Forma',
@@ -2196,7 +2316,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'Vista',
         viewDesc: 'Cambia vista: orbita libera → segui A → segui B.',
         snapshotName: 'Snapshot',
-        snapshotDesc: 'Registra 5 secondi della vista live. Anche le apparizioni di sfondo vengono raccolte automaticamente.',
+        snapshotDesc:
+          'Registra 5 secondi della vista live. Anche le apparizioni di sfondo vengono raccolte automaticamente.',
         musicName: 'Musica',
         musicDesc: 'Suono o muto — la musica guida sempre i visual.',
         splitName: 'Divisione',
@@ -2226,19 +2347,21 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'Elimina',
         deleteDesc: 'Elimina una clip o tutte quelle non tenute.',
         soundName: 'Audio',
-        soundDesc: 'Include la musica. Sincrono = ogni clip mantiene il suo momento; Continuo = una traccia.',
+        soundDesc:
+          'Include la musica. Sincrono = ogni clip mantiene il suo momento; Continuo = una traccia.',
         generateName: 'Genera',
         generateDesc: 'Renderizza le clip in un video, poi scarica o condividi.',
         deviceLimitsName: 'Limiti dispositivo',
         deviceLimitsDesc: 'Risoluzione e fps di export si adattano alla memoria.',
         browserName: 'Browser',
-        browserDesc: 'Lorenz Clash richiede un browser recente compatibile WebGPU e una connessione HTTPS sicura.',
+        browserDesc:
+          'Lorenz Clash richiede WebGPU e una connessione HTTPS sicura. Safari espone WebGPU su macOS Tahoe 26+, iOS/iPadOS 26+ e visionOS 26+.',
         recommendedName: 'Consigliato',
         recommendedDesc:
-          'Browser desktop moderno, Android flagship recente o upper-midrange orientato alle prestazioni con Chrome su Android 12+, iPhone SE 2022 / iPhone 13 o successivo, oppure iPad Pro 2018 o successivo.',
+          'Chrome/Edge recente su desktop, Android flagship recente o upper-midrange orientato alle prestazioni con Chrome su Android 12+, oppure Safari 26 su un OS Apple supportato.',
         olderDevicesName: 'Dispositivi vecchi',
         olderDevicesDesc:
-          'Le prestazioni Android variano molto. I telefoni economici o midrange possono ridurre il frame rate, soprattutto con camera ed export video.',
+          'Safari 26 su macOS Sequoia/Sonoma non espone WebGPU; lì usa Chrome/Edge. Le prestazioni Android variano molto, soprattutto con fotocamera ed export video.',
       },
     },
     tr: {
@@ -2255,7 +2378,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'André Frélicot tarafından yaratıldı.',
         date: 'Haziran 2026',
         privacyTitle: 'Gizlilik',
-        privacyLine1: 'Her şey cihazınızda çalışır. Kamera, fotoğraf ve videolar cihazdan çıkmaz — backend yok.',
+        privacyLine1:
+          'Her şey cihazınızda çalışır. Kamera, fotoğraf ve videolar cihazdan çıkmaz — backend yok.',
         privacyLine2: 'Yalnızca anonim ziyaret sayımı; cookies, IP takibi veya kişisel veri yok.',
       },
       items: {
@@ -2302,13 +2426,14 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deviceLimitsName: 'Cihaz sınırları',
         deviceLimitsDesc: 'Export çözünürlüğü ve fps cihaz belleğine uyarlanır.',
         browserName: 'Tarayıcı',
-        browserDesc: 'Lorenz Clash için WebGPU destekli güncel bir tarayıcı ve güvenli HTTPS bağlantısı gerekir.',
+        browserDesc:
+          'Lorenz Clash için WebGPU ve güvenli HTTPS bağlantısı gerekir. Safari, WebGPU’yu macOS Tahoe 26+, iOS/iPadOS 26+ ve visionOS 26+ üzerinde sunar.',
         recommendedName: 'Önerilen',
         recommendedDesc:
-          'Modern desktop tarayıcı, Android 12+ Chrome kullanan yeni Android amiral gemisi veya performans odaklı üst-orta segment telefon, iPhone SE 2022 / iPhone 13 veya sonrası, ya da iPad Pro 2018 veya sonrası.',
+          'Desktop üzerinde güncel Chrome/Edge, Android 12+ Chrome kullanan yeni Android amiral gemisi veya performans odaklı üst-orta segment telefon ya da desteklenen Apple OS üzerinde Safari 26.',
         olderDevicesName: 'Eski cihazlar',
         olderDevicesDesc:
-          'Android performansı çok değişkendir. Bütçe/orta segment telefonlar özellikle kamera modu ve video dışa aktarmada frame rate düşürebilir.',
+          'macOS Sequoia/Sonoma’daki Safari 26 WebGPU sunmaz; bu OS’lerde Chrome/Edge kullanın. Android performansı özellikle kamera ve video dışa aktarmada çok değişkendir.',
       },
     },
     bn: {
@@ -2325,7 +2450,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         line2: 'তৈরি করেছেন André Frélicot।',
         date: 'জুন ২০২৬',
         privacyTitle: 'গোপনীয়তা',
-        privacyLine1: 'সবকিছু আপনার ডিভাইসে চলে। ক্যামেরা, ছবি ও ভিডিও কখনও বাইরে যায় না — কোনো সার্ভার-পক্ষ নেই।',
+        privacyLine1:
+          'সবকিছু আপনার ডিভাইসে চলে। ক্যামেরা, ছবি ও ভিডিও কখনও বাইরে যায় না — কোনো সার্ভার-পক্ষ নেই।',
         privacyLine2: 'শুধু অজ্ঞাত দর্শন গণনা; কুকি, IP অনুসরণ বা ব্যক্তিগত ডেটা নেই।',
       },
       items: {
@@ -2336,7 +2462,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         viewName: 'দৃশ্য',
         viewDesc: 'ক্যামেরা বদলান: মুক্ত কক্ষপথ → A অনুসরণ → B অনুসরণ।',
         snapshotName: 'রেকর্ড',
-        snapshotDesc: 'সরাসরি দৃশ্য ৫ সেকেন্ড রেকর্ড করে। পটভূমির মুহূর্তও স্বয়ংক্রিয়ভাবে সংগ্রহ হয়।',
+        snapshotDesc:
+          'সরাসরি দৃশ্য ৫ সেকেন্ড রেকর্ড করে। পটভূমির মুহূর্তও স্বয়ংক্রিয়ভাবে সংগ্রহ হয়।',
         musicName: 'সঙ্গীত',
         musicDesc: 'শব্দ বা নিঃশব্দ — সঙ্গীত সবসময় দৃশ্য চালায়।',
         splitName: 'বিভাজন',
@@ -2350,7 +2477,8 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         frameName: 'ফ্রেম',
         frameDesc: 'মুক্ত দৃশ্যের ফ্রেমিং টানটান বা ঢিলা করতে ফেডার খুলুন।',
         speedName: 'গতি',
-        speedDesc: 'প্রতিটি বক্ররেখার গতি ঠিক করতে XY প্যাড খুলুন। ডাবল-ক্লিক বা ডাবল-ট্যাপে ডিফল্টে ফেরে।',
+        speedDesc:
+          'প্রতিটি বক্ররেখার গতি ঠিক করতে XY প্যাড খুলুন। ডাবল-ক্লিক বা ডাবল-ট্যাপে ডিফল্টে ফেরে।',
         autoName: 'স্বয়ংক্রিয়',
         autoDesc: 'স্বয়ংক্রিয় পরিচালক — সঙ্গীতের সাথে ক্যামেরা ও আকার বদলায়।',
         slowmoName: 'স্লো-মো',
@@ -2366,24 +2494,31 @@ function makeTranslatedLegend(locale: CompactLocale): Translation['legend'] {
         deleteName: 'মুছুন',
         deleteDesc: 'একটি ক্লিপ বা না-রাখা সব ক্লিপ মুছুন।',
         soundName: 'শব্দ',
-        soundDesc: 'সঙ্গীত অন্তর্ভুক্ত করুন। সামঞ্জস্য = প্রতিটি ক্লিপ নিজের সময় রাখে; ধারাবাহিক = একটানা ট্র্যাক।',
+        soundDesc:
+          'সঙ্গীত অন্তর্ভুক্ত করুন। সামঞ্জস্য = প্রতিটি ক্লিপ নিজের সময় রাখে; ধারাবাহিক = একটানা ট্র্যাক।',
         generateName: 'বানান',
         generateDesc: 'ক্লিপগুলো এক ভিডিওতে রেন্ডার করে ডাউনলোড বা শেয়ার করুন।',
         deviceLimitsName: 'ডিভাইস সীমা',
         deviceLimitsDesc: 'রপ্তানির রেজোলিউশন ও fps ডিভাইসের মেমরি অনুযায়ী বদলায়।',
         browserName: 'ব্রাউজার',
-        browserDesc: 'Lorenz Clash-এর জন্য WebGPU-সক্ষম নতুন ব্রাউজার এবং নিরাপদ HTTPS সংযোগ দরকার।',
+        browserDesc:
+          'Lorenz Clash-এর জন্য WebGPU এবং নিরাপদ HTTPS সংযোগ দরকার। Safari macOS Tahoe 26+, iOS/iPadOS 26+ এবং visionOS 26+ এ WebGPU প্রকাশ করে।',
         recommendedName: 'প্রস্তাবিত',
         recommendedDesc:
-          'আধুনিক ডেস্কটপ ব্রাউজার, Android 12+ Chrome চালানো সাম্প্রতিক Android ফ্ল্যাগশিপ বা পারফরম্যান্স-কেন্দ্রিক upper-midrange ফোন, iPhone SE 2022 / iPhone 13 বা নতুন, অথবা iPad Pro 2018 বা নতুন।',
+          'ডেস্কটপে নতুন Chrome/Edge, Android 12+ Chrome চালানো সাম্প্রতিক Android ফ্ল্যাগশিপ বা পারফরম্যান্স-কেন্দ্রিক upper-midrange ফোন, অথবা সমর্থিত Apple OS-এ Safari 26।',
         olderDevicesName: 'পুরোনো ডিভাইস',
         olderDevicesDesc:
-          'Android পারফরম্যান্স অনেক ভিন্ন হতে পারে। বাজেট/মিডরেঞ্জ ফোনে, বিশেষ করে ক্যামেরা মোড ও ভিডিও রপ্তানিতে, ফ্রেমরেট কমতে পারে।',
+          'macOS Sequoia/Sonoma-এ Safari 26 WebGPU প্রকাশ করে না; সেখানে Chrome/Edge ব্যবহার করুন। Android পারফরম্যান্স বিশেষ করে ক্যামেরা ও ভিডিও রপ্তানিতে অনেক ভিন্ন হতে পারে।',
       },
     },
   };
   const t = tables[locale];
-  return { ...base, ...t, credits: { ...base.credits, ...t.credits }, items: { ...base.items, ...t.items } };
+  return {
+    ...base,
+    ...t,
+    credits: { ...base.credits, ...t.credits },
+    items: { ...base.items, ...t.items },
+  };
 }
 
 function russianClipPhrase(n: number): string {
@@ -2437,7 +2572,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
       sound: 'Sonido',
       exportDuration: (duration) => `Duración del video: ${duration}`,
       clearUnkeptLabel: (n) => `Borrar no guardados (${n})`,
-      clearUnkeptConfirm: (n) => `¿Borrar ${n} clip${n > 1 ? 's' : ''} no guardado${n > 1 ? 's' : ''}? Solo quedan los marcados.`,
+      clearUnkeptConfirm: (n) =>
+        `¿Borrar ${n} clip${n > 1 ? 's' : ''} no guardado${n > 1 ? 's' : ''}? Solo quedan los marcados.`,
       generateVideo: 'Generar video',
       generated: 'Generado ✓',
       generating: 'Generando…',
@@ -2461,7 +2597,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
       sound: 'Som',
       exportDuration: (duration) => `Duração do vídeo: ${duration}`,
       clearUnkeptLabel: (n) => `Limpar não mantidos (${n})`,
-      clearUnkeptConfirm: (n) => `Excluir ${n} clipe${n > 1 ? 's' : ''} não mantido${n > 1 ? 's' : ''}? Só os marcados ficam.`,
+      clearUnkeptConfirm: (n) =>
+        `Excluir ${n} clipe${n > 1 ? 's' : ''} não mantido${n > 1 ? 's' : ''}? Só os marcados ficam.`,
       generateVideo: 'Gerar vídeo',
       generated: 'Gerado ✓',
       generating: 'Gerando…',
@@ -2485,7 +2622,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
       sound: '音',
       exportDuration: (duration) => `動画の長さ: ${duration}`,
       clearUnkeptLabel: (n) => `未保持を削除 (${n})`,
-      clearUnkeptConfirm: (n) => `未保持クリップ ${n} 件を削除しますか？保持したクリップは残ります。`,
+      clearUnkeptConfirm: (n) =>
+        `未保持クリップ ${n} 件を削除しますか？保持したクリップは残ります。`,
       generateVideo: '動画を生成',
       generated: '生成済み ✓',
       generating: '生成中…',
@@ -2653,7 +2791,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
       sound: 'Звук',
       exportDuration: (duration) => `Длительность видео: ${duration}`,
       clearUnkeptLabel: (n) => `Удалить несохранённые (${n})`,
-      clearUnkeptConfirm: (n) => `Удалить ${n} ${russianClipPhrase(n)}? Помеченные клипы останутся.`,
+      clearUnkeptConfirm: (n) =>
+        `Удалить ${n} ${russianClipPhrase(n)}? Помеченные клипы останутся.`,
       generateVideo: 'Создать видео',
       generated: 'Создано ✓',
       generating: 'Создание…',
@@ -2677,7 +2816,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
       sound: 'Audio',
       exportDuration: (duration) => `Durata video: ${duration}`,
       clearUnkeptLabel: (n) => `Pulisci non tenute (${n})`,
-      clearUnkeptConfirm: (n) => `Eliminare ${n} clip non tenut${n > 1 ? 'e' : 'a'}? Restano solo quelle segnate.`,
+      clearUnkeptConfirm: (n) =>
+        `Eliminare ${n} clip non tenut${n > 1 ? 'e' : 'a'}? Restano solo quelle segnate.`,
       generateVideo: 'Genera video',
       generated: 'Generato ✓',
       generating: 'Generazione…',
@@ -2716,7 +2856,8 @@ function makeTranslatedExport(locale: CompactLocale): Translation['exportMenu'] 
     },
     bn: {
       title: 'শেয়ার ও রপ্তানি',
-      empty: 'পটভূমি মোড চলতে দিন, অথবা ৫ সেকেন্ড রেকর্ড ট্যাপ করুন — প্রতিটি ক্লিপ এখানে দেখা যাবে।',
+      empty:
+        'পটভূমি মোড চলতে দিন, অথবা ৫ সেকেন্ড রেকর্ড ট্যাপ করুন — প্রতিটি ক্লিপ এখানে দেখা যাবে।',
       synced: 'সামঞ্জস্য',
       syncedTitle: 'প্রতিটি ক্লিপ নিজের সময়ের সঙ্গীত রাখে',
       continuous: 'ধারাবাহিক',
@@ -2755,7 +2896,8 @@ export function normalizeLocale(input: string | null | undefined): Locale | null
   const raw = input.replace('_', '-').trim();
   const lower = raw.toLowerCase();
   if (lower === 'pt-br' || lower === 'pt') return 'pt-BR';
-  if (lower === 'zh' || lower === 'zh-cn' || lower === 'zh-sg' || lower === 'zh-hans') return 'zh-Hans';
+  if (lower === 'zh' || lower === 'zh-cn' || lower === 'zh-sg' || lower === 'zh-hans')
+    return 'zh-Hans';
   const primary = lower.split('-')[0];
   if (primary === 'en') return 'en';
   if (primary === 'fr') return 'fr';
